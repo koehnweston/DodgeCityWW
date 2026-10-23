@@ -2,9 +2,9 @@ name: Compile Field Surveys and Pivot Registry
 
 on:
   push:
-    paths:
-      - 'data/surveys/**.json'
-      - 'data/raw_shp/**'
+    paths-ignore:
+      - 'README.md'
+      - '.gitignore'
   workflow_dispatch:
 
 permissions:
@@ -31,24 +31,34 @@ jobs:
         run: |
           pip install pandas geopandas shapely
 
-      - name: Check for Raw Shapefile Updates
+      - name: Auto-Detect Shapefile and Convert
         run: |
-          if [ -f "data/raw_shp/pivots.shp" ]; then
-            echo "Recompiling shapefile to GeoJSON..."
-            python scripts/convert_shapefile_to_geojson.py -i data/raw_shp/pivots.shp -o data/default_pivots.geojson
+          # 1. Unzip any uploaded zip files in the root or subfolders
+          find . -maxdepth 2 -name "*.zip" -exec unzip -o {} -d ./unzipped_shp \; || true
+
+          # 2. Find any .shp file in the repository (excluding git directories)
+          SHP_FILE=$(find . -not -path '*/.*' -name "*.shp" | head -n 1)
+
+          if [ -n "$SHP_FILE" ]; then
+            echo "Found shapefile at: $SHP_FILE"
+            mkdir -p data/dist
+            python scripts/convert_shapefile_to_geojson.py -i "$SHP_FILE" -o data/default_pivots.geojson
+          else
+            echo "No .shp file found. Keeping existing data/default_pivots.geojson."
           fi
 
       - name: Execute Survey Aggregator
         run: |
+          mkdir -p data/surveys data/dist
           python scripts/aggregate.py
 
       - name: Commit & Push Consolidated Deliverables
         run: |
           git config --global user.name "Hydraulic CI Bot"
           git config --global user.email "ci-bot@field.local"
-          git add data/dist/ data/default_pivots.geojson
+          git add data/default_pivots.geojson data/dist/
           if git diff --staged --quiet; then
-            echo "No changes detected in compiled artifacts."
+            echo "No changes detected."
           else
             git commit -m "Auto-compile field datasets and spatial layers [skip ci]"
             git push origin main
