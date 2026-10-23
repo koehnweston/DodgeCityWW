@@ -1,15 +1,333 @@
-<script>
-        // --------------------------------------------------------------------
-        // Global State & Baseline Inventory
-        // --------------------------------------------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>Dodge City Pivot Calibration</title>
+
+    <!-- Leaflet & GIS Engines -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+    <style>
+        *, *:before, *:after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+
+        .app-shell { display: flex; flex-direction: column; height: 100vh; height: 100dvh; }
+
+        /* Top Header */
+        .header {
+            background: #1e293b; border-bottom: 1px solid #334155;
+            padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;
+            flex-shrink: 0; z-index: 1000;
+        }
+        .header-title { font-size: 13.5px; font-weight: 800; color: #ffffff; letter-spacing: -0.2px; }
+        .header-badges { display: flex; align-items: center; gap: 6px; }
+
+        .status-pill {
+            font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 999px;
+            display: flex; align-items: center; gap: 4px; background: #334155; color: #94a3b8;
+        }
+        .status-pill.active { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; }
+        .status-pill.searching { background: rgba(245, 158, 11, 0.2); color: #f59e0b; border: 1px solid #f59e0b; }
+        .status-pill.pending { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid #38bdf8; }
+        .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+        /* View Panels */
+        .content { flex: 1; position: relative; overflow: hidden; }
+        .view-panel { display: none; width: 100%; height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .view-panel.active { display: block; }
+
+        /* Map UI */
+        #map { width: 100%; height: 100%; z-index: 1; }
+        .proximity-hud {
+            position: absolute; top: 12px; left: 12px; right: 12px; z-index: 999;
+            background: rgba(15, 23, 42, 0.94); border: 1.5px solid #38bdf8;
+            border-radius: 10px; padding: 10px 14px; backdrop-filter: blur(8px);
+            display: flex; align-items: center; justify-content: space-between;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.5);
+        }
+        .hud-left { display: flex; flex-direction: column; }
+        .hud-title { font-size: 9.5px; text-transform: uppercase; color: #94a3b8; font-weight: 800; letter-spacing: 0.5px; }
+        .hud-pivot { font-size: 15px; font-weight: 800; color: #38bdf8; }
+        .hud-dist { font-size: 11.5px; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; }
+        .btn-hud-action {
+            background: #0284c7; color: white; border: none; font-size: 12px; font-weight: 700;
+            padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: 0.2s;
+        }
+
+        /* Forms */
+        .form-wrap { padding: 16px; max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+        .card {
+            background: #1e293b; border: 1px solid #334155; border-radius: 10px;
+            padding: 14px; display: flex; flex-direction: column; gap: 10px;
+        }
+        .card-header { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; display: flex; justify-content: space-between; }
+        .form-row { display: flex; gap: 10px; }
+        .form-col { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+        label { font-size: 11px; font-weight: 600; color: #cbd5e1; }
+        input, select {
+            background: #0f172a; border: 1px solid #475569; border-radius: 6px;
+            padding: 10px; color: #ffffff; font-size: 13.5px; outline: none; width: 100%;
+            font-family: inherit;
+        }
+        input:focus, select:focus { border-color: #38bdf8; }
+        .numeric-field { font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+
+        /* Calculation Diagnostics */
+        .calc-preview-box {
+            background: #0f172a; border: 1px solid #334155; border-radius: 8px;
+            padding: 10px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
+        }
+        .calc-stat { display: flex; flex-direction: column; }
+        .calc-stat-label { font-size: 9.5px; color: #64748b; font-weight: 700; }
+        .calc-stat-val { font-size: 13.5px; font-weight: 800; color: #38bdf8; font-family: 'JetBrains Mono', monospace; }
+        .badge {
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 4px;
+        }
+        .badge-pass { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; }
+        .badge-fail { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; }
+
+        /* Buttons */
+        .btn-primary {
+            background: #0284c7; color: white; border: none; font-weight: 800;
+            font-size: 13.5px; padding: 13px; border-radius: 8px; cursor: pointer;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4); text-align: center;
+        }
+        .btn-secondary {
+            background: #334155; color: #e2e8f0; border: 1px solid #475569; font-weight: 700;
+            font-size: 12.5px; padding: 9px; border-radius: 6px; cursor: pointer; text-align: center;
+        }
+
+        /* Bottom Nav */
+        .tab-bar {
+            background: #1e293b; border-top: 1px solid #334155; height: 56px;
+            display: flex; align-items: center; justify-content: space-around;
+            flex-shrink: 0; z-index: 1000;
+        }
+        .tab-btn {
+            background: transparent; border: none; color: #94a3b8; font-size: 10.5px;
+            font-weight: 700; display: flex; flex-direction: column; align-items: center;
+            gap: 3px; cursor: pointer; width: 33.3%; height: 100%; justify-content: center;
+        }
+        .tab-btn.active { color: #38bdf8; }
+        .tab-icon { font-size: 17px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+        th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #334155; }
+        th { background: #0f172a; color: #94a3b8; font-size: 9.5px; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+    <div class="app-shell">
+        <header class="header">
+            <div class="header-title">🚜 Dodge City Calibration</div>
+            <div class="header-badges">
+                <div id="sync-status-pill" class="status-pill">
+                    <span class="dot"></span>
+                    <span id="sync-status-text">Cloud Sync</span>
+                </div>
+                <div id="gps-status-pill" class="status-pill searching">
+                    <span class="dot"></span>
+                    <span id="gps-status-text">Acquiring GPS</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="content">
+            <!-- TAB 1: PROXIMITY MAP -->
+            <div id="view-map" class="view-panel active">
+                <div id="map"></div>
+                <div class="proximity-hud" id="hud-panel">
+                    <div class="hud-left">
+                        <span class="hud-title">Nearest Center Pad</span>
+                        <span class="hud-pivot" id="hud-nearest-name">Locating...</span>
+                        <span class="hud-dist" id="hud-nearest-dist">-- ft</span>
+                    </div>
+                    <button class="btn-hud-action" id="btn-lock-pivot" onclick="lockCurrentPivot()">Locate</button>
+                </div>
+            </div>
+
+            <!-- TAB 2: FIELD CALIBRATION FORM -->
+            <div id="view-form" class="view-panel">
+                <div class="form-wrap">
+                    <div class="card">
+                        <div class="card-header">
+                            <span>1. Target Pivot Pad Binding</span>
+                            <span id="auto-lock-indicator" style="color:#10b981; font-weight:700;">Manual</span>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label>Pivot Identifier</label>
+                                <select id="field-pivot-select" onchange="onPivotSelectionChanged()"></select>
+                            </div>
+                            <div class="form-col">
+                                <label>Transducer S/N</label>
+                                <input type="text" id="field-trans-sn" placeholder="e.g. B53255-B" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header"><span>2. Physical Tap &amp; Orientation</span></div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label>Tap Height Above Concrete Slab (Inches)</label>
+                                <input type="number" step="0.25" id="field-tap-height-in" value="78.0" oninput="runLiveHydraulics()" class="numeric-field" />
+                            </div>
+                            <div class="form-col">
+                                <label>Span Azimuth Heading (0-359°)</label>
+                                <input type="number" min="0" max="359" id="field-heading-deg" placeholder="Deg" class="numeric-field" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header"><span>3. Totalizing Flow Window (T1 to T2)</span></div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label>T1 Time</label>
+                                <input type="time" id="field-t1-time" onchange="runLiveHydraulics()" />
+                            </div>
+                            <div class="form-col">
+                                <label>T1 Totalizer (Gal)</label>
+                                <input type="number" id="field-t1-gal" placeholder="T1" oninput="runLiveHydraulics()" class="numeric-field" />
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label>T2 Time</label>
+                                <input type="time" id="field-t2-time" onchange="runLiveHydraulics()" />
+                            </div>
+                            <div class="form-col">
+                                <label>T2 Totalizer (Gal)</label>
+                                <input type="number" id="field-t2-gal" placeholder="T2" oninput="runLiveHydraulics()" class="numeric-field" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header"><span>4. Pressure Transducer Reading</span></div>
+                        <div class="form-row">
+                            <div class="form-col">
+                                <label>Steady Riser Tap Reading (PSI)</label>
+                                <input type="number" step="0.1" id="field-gauge-psi" placeholder="Tap PSI" oninput="runLiveHydraulics()" class="numeric-field" />
+                            </div>
+                            <div class="form-col">
+                                <label>Upload CirrusSense CSV</label>
+                                <input type="file" id="field-logger-csv" accept=".csv" onchange="handleLoggerCSVUpload(event)" style="font-size:11px; padding:6px;" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header"><span>5. Live Hydraulic QA/QC Diagnostics</span></div>
+                        <div class="calc-preview-box">
+                            <div class="calc-stat">
+                                <span class="calc-stat-label">PAD DATUM PRESSURE</span>
+                                <span class="calc-stat-val" id="diag-pad-psi">-- PSI</span>
+                            </div>
+                            <div class="calc-stat">
+                                <span class="calc-stat-label">MEASURED FLOW</span>
+                                <span class="calc-stat-val" id="diag-flow-gpm">-- GPM</span>
+                            </div>
+                            <div class="calc-stat">
+                                <span class="calc-stat-label">FLOW TOLERANCE (±5%)</span>
+                                <span class="calc-stat-val" id="diag-flow-tol">--</span>
+                            </div>
+                            <div class="calc-stat">
+                                <span class="calc-stat-label">REGULATOR SEAT MARGIN</span>
+                                <span class="calc-stat-val" id="diag-margin">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn-primary" onclick="submitFieldRecord()">💾 Save &amp; Sync Record</button>
+                </div>
+            </div>
+
+            <!-- TAB 3: DATA LOG & GITHUB CONFIG -->
+            <div id="view-records" class="view-panel">
+                <div class="form-wrap">
+                    <div class="card">
+                        <div class="card-header"><span>GitHub Cloud Sync Settings</span></div>
+                        <div class="form-col">
+                            <label>GitHub Organization / Username</label>
+                            <input type="text" id="cfg-gh-owner" placeholder="e.g. koehnweston" onchange="saveCloudConfig()" />
+                        </div>
+                        <div class="form-col">
+                            <label>Repository Name</label>
+                            <input type="text" id="cfg-gh-repo" placeholder="e.g. DodgeCityWW" onchange="saveCloudConfig()" />
+                        </div>
+                        <div class="form-col">
+                            <label>Personal Access Token (PAT)</label>
+                            <input type="password" id="cfg-gh-token" placeholder="github_pat_..." onchange="saveCloudConfig()" />
+                        </div>
+                        <div class="form-col">
+                            <label>Field Technician Name / Initials</label>
+                            <input type="text" id="cfg-tech-name" placeholder="e.g. W. Koehn" onchange="saveCloudConfig()" />
+                        </div>
+                        <button class="btn-secondary" onclick="syncOfflineQueueToGitHub()">🔄 Force Push Pending Records</button>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span>Logged Field Surveys</span>
+                            <span id="record-count-badge" style="color:#38bdf8; font-weight:700;">0 Local</span>
+                        </div>
+                        <div style="overflow-x:auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Pivot</th>
+                                        <th>Flow</th>
+                                        <th>Pad PSI</th>
+                                        <th>Sync</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="survey-log-tbody"></tbody>
+                            </table>
+                        </div>
+                        <div class="form-row" style="margin-top:10px;">
+                            <button class="btn-secondary" style="flex:1;" onclick="exportLocalCSV()">⬇ Export CSV</button>
+                            <button class="btn-secondary" style="flex:1;" onclick="clearLocalStorage()">🗑 Clear Local</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <nav class="tab-bar">
+            <button class="tab-btn active" id="tab-nav-map" onclick="switchView('view-map')">
+                <span class="tab-icon">🗺️</span>
+                <span>Proximity Map</span>
+            </button>
+            <button class="tab-btn" id="tab-nav-form" onclick="switchView('view-form')">
+                <span class="tab-icon">📝</span>
+                <span>Calibration</span>
+            </button>
+            <button class="tab-btn" id="tab-nav-records" onclick="switchView('view-records')">
+                <span class="tab-icon">⚙️</span>
+                <span>Sync &amp; Data</span>
+            </button>
+        </nav>
+    </div>
+
+    <script>
         let activePivots = [];
         let userLocation = null;
         let nearestPivot = null;
         let map, userMarker, pivotLayerGroup;
 
-        // --------------------------------------------------------------------
-        // Spatial Math: Geodesic Haversine & Sector Centers
-        // --------------------------------------------------------------------
         function haversineFeet(lat1, lon1, lat2, lon2) {
             const R_ft = 20902231.0;
             const phi1 = lat1 * Math.PI / 180.0, phi2 = lat2 * Math.PI / 180.0;
@@ -20,21 +338,17 @@
             return 2.0 * R_ft * Math.atan2(Math.sqrt(a), Math.sqrt(1.0 - a));
         }
 
-        // --------------------------------------------------------------------
-        // Dynamic GeoJSON Asset Ingestion (Your Shapefile Output)
-        // --------------------------------------------------------------------
         async function loadDynamicPivotRegistry() {
             try {
-                // Fetch the compiled GeoJSON generated by GitHub Actions
                 const resp = await fetch('data/default_pivots.geojson?t=' + Date.now());
-                if (!resp.ok) throw new Error("No remote data/default_pivots.geojson found yet.");
+                if (!resp.ok) throw new Error("Awaiting default_pivots.geojson compilation");
 
                 const geojson = await resp.json();
                 const loadedPivots = [];
 
                 geojson.features.forEach(feat => {
                     const p = feat.properties;
-                    const coords = feat.geometry.coordinates; // [lon, lat]
+                    const coords = feat.geometry.coordinates;
                     loadedPivots.push({
                         id: p.id,
                         sn: p.sn || '',
@@ -53,24 +367,19 @@
                     activePivots = loadedPivots;
                     populatePivotDropdown();
                     renderPivotMarkers();
-                    
-                    // Auto-zoom map to fit all pivots in your shapefile
+
                     if (pivotLayerGroup && pivotLayerGroup.getLayers().length > 0) {
                         const bounds = L.featureGroup(pivotLayerGroup.getLayers()).getBounds();
                         if (bounds.isValid()) {
                             map.fitBounds(bounds, { padding: [30, 30] });
                         }
                     }
-                    console.log(`Successfully loaded ${loadedPivots.length} pivots from shapefile GeoJSON.`);
                 }
             } catch (err) {
-                console.warn("Could not load dynamic GeoJSON:", err.message);
+                console.warn("GeoJSON Registry load notice:", err.message);
             }
         }
 
-        // --------------------------------------------------------------------
-        // Map Rendering (Draws Polygons + Center Pad Nodes)
-        // --------------------------------------------------------------------
         function initMap() {
             map = L.map('map', { zoomControl: false, attributionControl: false }).setView([37.755, -100.02], 13);
             L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
@@ -83,29 +392,18 @@
             activePivots.forEach(p => {
                 const color = p.status === 'Complete' ? '#10b981' : (p.status === 'Still Irrigating' ? '#a855f7' : '#38bdf8');
 
-                // 1. Render Polygon Boundary Footprint (if present from shapefile)
                 if (p.polygon) {
                     const polyLayer = L.geoJSON(p.polygon, {
-                        style: {
-                            color: color,
-                            weight: 2,
-                            fillColor: color,
-                            fillOpacity: 0.25
-                        }
+                        style: { color: color, weight: 2, fillColor: color, fillOpacity: 0.25 }
                     });
                     polyLayer.bindTooltip(`<b>${p.id}</b>`);
                     polyLayer.on('click', () => selectAndBindPivot(p.id));
                     pivotLayerGroup.addLayer(polyLayer);
                 }
 
-                // 2. Render Physical Center Pad Pin (Transducer Tap)
                 if (p.lat && p.lon) {
                     const padMarker = L.circleMarker([p.lat, p.lon], {
-                        radius: 7,
-                        fillColor: color,
-                        color: '#ffffff',
-                        weight: 2,
-                        fillOpacity: 1.0
+                        radius: 7, fillColor: color, color: '#ffffff', weight: 2, fillOpacity: 1.0
                     });
                     padMarker.bindTooltip(`<b>${p.id} Pad</b><br>S/N: ${p.sn || 'None'}`);
                     padMarker.on('click', () => selectAndBindPivot(p.id));
@@ -114,9 +412,6 @@
             });
         }
 
-        // --------------------------------------------------------------------
-        // GPS Tracking & Proximity HUD
-        // --------------------------------------------------------------------
         function startGpsTracking() {
             const statusPill = document.getElementById('gps-status-pill');
             const statusText = document.getElementById('gps-status-text');
@@ -216,9 +511,6 @@
             }
         }
 
-        // --------------------------------------------------------------------
-        // Hydraulic Calculation Engine
-        // --------------------------------------------------------------------
         function runLiveHydraulics() {
             const pId = document.getElementById('field-pivot-select').value;
             const pivot = activePivots.find(x => x.id === pId) || { design_gpm: 800, reg_psi: 15, max_elev_diff: 10 };
@@ -302,15 +594,12 @@
                     document.getElementById('field-gauge-psi').value = avgPsi.toFixed(1);
                     if (detectedSn) document.getElementById('field-trans-sn').value = detectedSn;
                     runLiveHydraulics();
-                    alert(`Parsed ${foundPressures.length} logged records. Average Tap PSI: ${avgPsi.toFixed(1)}`);
+                    alert(`Parsed ${foundPressures.length} logged intervals. Average Tap PSI: ${avgPsi.toFixed(1)}`);
                 }
             };
             reader.readAsText(file);
         }
 
-        // --------------------------------------------------------------------
-        // Cloud Sync & Local Storage
-        // --------------------------------------------------------------------
         function saveCloudConfig() {
             localStorage.setItem("gh_owner", document.getElementById("cfg-gh-owner").value.trim());
             localStorage.setItem("gh_repo", document.getElementById("cfg-gh-repo").value.trim());
@@ -320,8 +609,8 @@
         }
 
         function loadCloudConfig() {
-            document.getElementById("cfg-gh-owner").value = localStorage.getItem("gh_owner") || "";
-            document.getElementById("cfg-gh-repo").value = localStorage.getItem("gh_repo") || "";
+            document.getElementById("cfg-gh-owner").value = localStorage.getItem("gh_owner") || "koehnweston";
+            document.getElementById("cfg-gh-repo").value = localStorage.getItem("gh_repo") || "DodgeCityWW";
             document.getElementById("cfg-gh-token").value = localStorage.getItem("gh_token") || "";
             document.getElementById("cfg-tech-name").value = localStorage.getItem("gh_tech") || "";
             updateSyncPill();
@@ -381,8 +670,8 @@
 
         async function syncOfflineQueueToGitHub() {
             let queue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
-            const owner = localStorage.getItem("gh_owner");
-            const repo = localStorage.getItem("gh_repo");
+            const owner = localStorage.getItem("gh_owner") || "koehnweston";
+            const repo = localStorage.getItem("gh_repo") || "DodgeCityWW";
             const token = localStorage.getItem("gh_token");
 
             if (!owner || !repo || !token) return;
@@ -473,9 +762,6 @@
             }
         }
 
-        // --------------------------------------------------------------------
-        // UI Tabs & Selectors
-        // --------------------------------------------------------------------
         function switchView(viewId) {
             document.querySelectorAll('.view-panel').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -511,9 +797,6 @@
             document.getElementById('field-t1-time').value = `${pad(past.getHours())}:${pad(past.getMinutes())}`;
         }
 
-        // --------------------------------------------------------------------
-        // App Lifecycle Bootstrapping
-        // --------------------------------------------------------------------
         window.addEventListener('DOMContentLoaded', () => {
             initMap();
             loadCloudConfig();
@@ -521,10 +804,10 @@
             startGpsTracking();
             renderSurveyTable();
             setDefaultTimes();
-            
-            // Load your uploaded shapefile GeoJSON dynamically
             loadDynamicPivotRegistry();
 
             window.addEventListener('online', syncOfflineQueueToGitHub);
         });
     </script>
+</body>
+</html>
