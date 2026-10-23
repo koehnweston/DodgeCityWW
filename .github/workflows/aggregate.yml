@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout Source Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Python Environment
         uses: actions/setup-python@v5
@@ -29,10 +31,7 @@ jobs:
 
       - name: Auto-Detect Shapefile and Convert
         run: |
-          # 1. Unzip any uploaded zip files if present
           find . -maxdepth 2 -name "*.zip" -exec unzip -o {} -d ./unzipped_shp \; || true
-
-          # 2. Find any .shp file in the repository (handles spaces and parentheses)
           SHP_FILE=$(find . -not -path '*/.*' -name "*.shp" | head -n 1)
 
           if [ -n "$SHP_FILE" ]; then
@@ -57,5 +56,6 @@ jobs:
             echo "No changes detected."
           else
             git commit -m "Auto-compile field datasets and spatial layers [skip ci]"
+            git pull --rebase origin main
             git push origin main
           fi
