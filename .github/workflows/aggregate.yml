@@ -33,18 +33,15 @@ jobs:
 
       - name: Auto-Detect Shapefile and Convert
         run: |
-          # 1. Unzip any uploaded zip files in the root or subfolders
-          find . -maxdepth 2 -name "*.zip" -exec unzip -o {} -d ./unzipped_shp \; || true
-
-          # 2. Find any .shp file in the repository (excluding git directories)
+          # Find any .shp file in the repo (handles spaces and parentheses)
           SHP_FILE=$(find . -not -path '*/.*' -name "*.shp" | head -n 1)
 
           if [ -n "$SHP_FILE" ]; then
-            echo "Found shapefile at: $SHP_FILE"
+            echo "Found shapefile: $SHP_FILE"
             mkdir -p data/dist
             python scripts/convert_shapefile_to_geojson.py -i "$SHP_FILE" -o data/default_pivots.geojson
           else
-            echo "No .shp file found. Keeping existing data/default_pivots.geojson."
+            echo "No .shp file found."
           fi
 
       - name: Execute Survey Aggregator
