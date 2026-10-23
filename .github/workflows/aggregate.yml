@@ -31,15 +31,15 @@ jobs:
 
       - name: Auto-Detect Shapefile and Convert
         run: |
-          find . -maxdepth 2 -name "*.zip" -exec unzip -o {} -d ./unzipped_shp \; || true
+          # Detect shapefile (handles spaces and parentheses like 'Existing Polygons (DC).shp')
           SHP_FILE=$(find . -not -path '*/.*' -name "*.shp" | head -n 1)
 
           if [ -n "$SHP_FILE" ]; then
-            echo "Found shapefile: $SHP_FILE"
+            echo "Found shapefile at: $SHP_FILE"
             mkdir -p data/dist
             python scripts/convert_shapefile_to_geojson.py -i "$SHP_FILE" -o data/default_pivots.geojson
           else
-            echo "No .shp file found. Keeping existing data/default_pivots.geojson."
+            echo "No .shp file found."
           fi
 
       - name: Execute Survey Aggregator
@@ -47,15 +47,8 @@ jobs:
           mkdir -p data/surveys data/dist
           python scripts/aggregate.py
 
-      - name: Commit & Push Consolidated Deliverables
-        run: |
-          git config --global user.name "Hydraulic CI Bot"
-          git config --global user.email "ci-bot@field.local"
-          git add data/default_pivots.geojson data/dist/
-          if git diff --staged --quiet; then
-            echo "No changes detected."
-          else
-            git commit -m "Auto-compile field datasets and spatial layers [skip ci]"
-            git pull --rebase origin main
-            git push origin main
-          fi
+      - name: Commit and Push Deliverables
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Auto-compile field datasets and spatial layers [skip ci]"
+          file_pattern: "data/default_pivots.geojson data/dist/*"
