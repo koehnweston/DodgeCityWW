@@ -270,18 +270,19 @@
                         </div>
                     </div>
 
-                    <!-- CAMERA PHOTO CAPTURE CARD -->
+                    <!-- MULTI-PHOTO CAMERA CAPTURE CARD -->
                     <div class="card">
                         <div class="card-header">
                             <span>5. System Photo Log</span>
-                            <span id="photo-status-badge" style="color:#94a3b8; font-weight:700;">No Photo</span>
+                            <span id="photo-status-badge" style="color:#94a3b8; font-weight:700;">0 Photos</span>
                         </div>
-                        <label>Capture / Upload Riser, Gauge, or Flow Meter</label>
-                        <input type="file" id="field-photo-input" accept="image/*" capture="environment" onchange="handlePhotoCapture(event)" style="font-size:11px; padding:6px;" />
-                        <div id="photo-preview-wrap" style="display:none; margin-top:8px; text-align:center;">
-                            <img id="photo-preview-img" src="" style="max-height:160px; max-width:100%; border-radius:6px; border:1px solid #38bdf8;" />
-                            <br>
-                            <button type="button" onclick="clearCapturedPhoto()" class="btn-secondary" style="margin-top:6px; padding:4px 10px; font-size:11px;">Remove Photo</button>
+                        <label>Capture / Add System Photos (Meter, Gauge, Riser)</label>
+                        <div class="form-row" style="align-items:center;">
+                            <input type="file" id="field-photo-input" accept="image/*" capture="environment" multiple onchange="handlePhotoCapture(event)" style="font-size:11px; padding:6px; flex:1;" />
+                            <button type="button" onclick="clearAllPhotos()" class="btn-secondary" style="padding:6px 12px; font-size:11px;">Clear All</button>
+                        </div>
+                        <div id="photo-gallery-grid" style="display:none; flex-wrap:wrap; gap:8px; margin-top:10px;">
+                            <!-- Thumbnails dynamically rendered here -->
                         </div>
                     </div>
 
@@ -400,7 +401,7 @@
         let userLocation = null;
         let nearestPivot = null;
         let map, userMarker, pivotLayerGroup;
-        let capturedPhotoBase64 = null;
+        let capturedPhotos = [];
 
         // --------------------------------------------------------------------
         // Spatial Math: Geodesic Haversine
@@ -616,52 +617,100 @@
         }
 
         // --------------------------------------------------------------------
-        // Camera Photo Log & Client-Side Image Compression
+        // Multi-Photo Capture Engine (Sequential Append + Canvas Compression)
         // --------------------------------------------------------------------
-        function handlePhotoCapture(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        async function handlePhotoCapture(event) {
+            const files = Array.from(event.target.files);
+            if (!files || files.length === 0) return;
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    const maxDim = 1000;
+            const badge = document.getElementById('photo-status-badge');
+            badge.innerText = "Compressing...";
+            badge.style.color = "#f59e0b";
 
-                    if (width > height && width > maxDim) {
-                        height = Math.round(height * (maxDim / width));
-                        width = maxDim;
-                    } else if (height > maxDim) {
-                        width = Math.round(width * (maxDim / height));
-                        height = maxDim;
-                    }
+            for (const file of files) {
+                try {
+                    const compressedBase64 = await compressImageFile(file);
+                    capturedPhotos.push(compressedBase64);
+                } catch (e) {
+                    console.error("Photo compression error:", e);
+                }
+            }
 
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    capturedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.70);
-
-                    document.getElementById('photo-preview-img').src = capturedPhotoBase64;
-                    document.getElementById('photo-preview-wrap').style.display = 'block';
-                    document.getElementById('photo-status-badge').innerText = "✓ Attached";
-                    document.getElementById('photo-status-badge').style.color = "#10b981";
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
+            event.target.value = "";
+            renderPhotoGallery();
         }
 
-        function clearCapturedPhoto() {
-            capturedPhotoBase64 = null;
-            document.getElementById('field-photo-input').value = "";
-            document.getElementById('photo-preview-wrap').style.display = 'none';
-            document.getElementById('photo-status-badge').innerText = "No Photo";
-            document.getElementById('photo-status-badge').style.color = "#94a3b8";
+        function compressImageFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+                        const maxDim = 1000;
+
+                        if (width > height && width > maxDim) {
+                            height = Math.round(height * (maxDim / width));
+                            width = maxDim;
+                        } else if (height > maxDim) {
+                            width = Math.round(width * (maxDim / height));
+                            height = maxDim;
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        resolve(canvas.toDataURL('image/jpeg', 0.70));
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function renderPhotoGallery() {
+            const grid = document.getElementById('photo-gallery-grid');
+            const badge = document.getElementById('photo-status-badge');
+            grid.innerHTML = '';
+
+            if (capturedPhotos.length === 0) {
+                grid.style.display = 'none';
+                badge.innerText = "0 Photos";
+                badge.style.color = "#94a3b8";
+                return;
+            }
+
+            grid.style.display = 'flex';
+            badge.innerText = `✓ ${capturedPhotos.length} Attached`;
+            badge.style.color = "#10b981";
+
+            capturedPhotos.forEach((b64, idx) => {
+                const thumbWrap = document.createElement('div');
+                thumbWrap.style.cssText = "position:relative; width:72px; height:72px; border-radius:6px; overflow:hidden; border:1.5px solid #38bdf8;";
+
+                thumbWrap.innerHTML = `
+                    <img src="${b64}" style="width:100%; height:100%; object-fit:cover;" />
+                    <button type="button" onclick="removePhoto(${idx})" 
+                            style="position:absolute; top:2px; right:2px; background:rgba(239,68,68,0.9); color:white; border:none; border-radius:50%; width:18px; height:18px; font-size:10px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center;">✕</button>
+                `;
+                grid.appendChild(thumbWrap);
+            });
+        }
+
+        function removePhoto(idx) {
+            capturedPhotos.splice(idx, 1);
+            renderPhotoGallery();
+        }
+
+        function clearAllPhotos() {
+            capturedPhotos = [];
+            renderPhotoGallery();
         }
 
         // --------------------------------------------------------------------
@@ -818,7 +867,7 @@
                 totalVolumeGallons: totalGal,
                 durationMinutes: Math.round(dtMinutes),
                 unitLabel: unitText,
-                photoBase64: capturedPhotoBase64,
+                photos: [...capturedPhotos],
                 latitude: userLocation ? userLocation.lat : null,
                 longitude: userLocation ? userLocation.lon : null
             };
@@ -834,7 +883,7 @@
             renderSurveyTable();
             alert(`Survey recorded for ${pId}.`);
 
-            clearCapturedPhoto();
+            clearAllPhotos();
             syncOfflineQueueToGitHub();
             switchView('view-records');
         }
@@ -916,11 +965,14 @@
 
             surveys.slice().reverse().forEach(s => {
                 const isPending = queue.some(q => q.client_uuid === s.client_uuid);
+                const photoCount = (s.photos && s.photos.length) || (s.photoBase64 ? 1 : 0);
+                const photoBadge = photoCount > 0 ? `📷 (${photoCount})` : '';
+
                 const tr = document.createElement('tr');
                 tr.style.cursor = 'pointer';
                 tr.onclick = () => openSurveyDetail(s.client_uuid);
                 tr.innerHTML = `
-                    <td style="font-weight:700; color:#38bdf8;">${s.pivotId} ${s.photoBase64 ? '📷' : ''} <span style="font-size:10px; color:#64748b;">🔍</span></td>
+                    <td style="font-weight:700; color:#38bdf8;">${s.pivotId} ${photoBadge} <span style="font-size:10px; color:#64748b;">🔍</span></td>
                     <td>${Math.round(s.measuredFlowGpm).toLocaleString()} GPM</td>
                     <td>${s.calculatedPadPsi.toFixed(1)} PSI</td>
                     <td><span class="badge ${isPending ? 'badge-fail' : 'badge-pass'}">${isPending ? 'Pending' : 'Synced'}</span></td>
@@ -946,12 +998,24 @@
                 `${Math.round(item.totalVolumeGallons).toLocaleString()} Gal`
             ) : "N/A";
 
-            const photoHtml = item.photoBase64 ? `
-                <div style="margin-top:10px; text-align:center;">
-                    <div style="font-size:11px; color:#94a3b8; margin-bottom:4px; font-weight:700;">ATTACHED SYSTEM PHOTO</div>
-                    <img src="${item.photoBase64}" style="max-height:220px; max-width:100%; border-radius:8px; border:1.5px solid #38bdf8;" />
-                </div>
-            ` : "";
+            const photos = item.photos || (item.photoBase64 ? [item.photoBase64] : []);
+            let photoHtml = "";
+
+            if (photos.length > 0) {
+                photoHtml = `
+                    <div style="margin-top:10px;">
+                        <div style="font-size:11px; color:#94a3b8; margin-bottom:6px; font-weight:700;">ATTACHED SYSTEM PHOTOS (${photos.length})</div>
+                        <div style="display:flex; flex-direction:column; gap:10px; align-items:center;">
+                            ${photos.map((p, idx) => `
+                                <div style="text-align:center; width:100%;">
+                                    <span style="font-size:9.5px; color:#64748b; font-family:monospace;">Photo ${idx + 1} of ${photos.length}</span>
+                                    <img src="${p}" style="max-height:220px; max-width:100%; border-radius:8px; border:1.5px solid #38bdf8; display:block; margin:3px auto 0 auto;" />
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
 
             const body = document.getElementById('modal-detail-body');
             body.innerHTML = `
