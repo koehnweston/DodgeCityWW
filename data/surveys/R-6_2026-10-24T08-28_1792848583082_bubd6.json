@@ -1,0 +1,23 @@
+{
+  "client_uuid": "1792848583082_bubd6",
+  "timestamp": "2026-10-24T08:28",
+  "technician": "Weston Koehn",
+  "pivotId": "R-6",
+  "transducerSn": "B53246-B",
+  "tapHeightInches": 0,
+  "headingDeg": 0,
+  "rawGaugePsi": 44,
+  "calculatedPadPsi": 44,
+  "currentReading": 2500000,
+  "unitLabel": "0.001*Ac-Ft (×1 gal)",
+  "unitMultiplier": 1,
+  "priorVisitUuid": null,
+  "priorTimestamp": null,
+  "priorReading": null,
+  "durationMinutes": 0,
+  "totalVolumeGallons": 0,
+  "measuredFlowGpm": 0,
+  "photos": [],
+  "latitude": 39.16347408424613,
+  "longitude": -96.61087071166797
+}
