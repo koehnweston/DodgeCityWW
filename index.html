@@ -419,8 +419,14 @@
         </div>
     </div>
 
-    <!-- FULL-SCREEN PHOTO LIGHTBOX -->
+    <!-- FULL-SCREEN PHOTO LIGHTBOX (WITH NATIVE PHONE SAVE BUTTON) -->
     <div id="photo-lightbox-modal" class="lightbox-overlay" onclick="closeImageLightbox()">
+        <div style="position:absolute; top:16px; left:16px; z-index:3002;">
+            <button onclick="saveActiveLightboxPhoto(event)" 
+                    style="background:#0284c7; color:white; border:none; padding:8px 14px; font-weight:700; font-size:12px; border-radius:6px; cursor:pointer; display:flex; align-items:center; gap:6px; box-shadow:0 2px 10px rgba(0,0,0,0.5);">
+                💾 Save to Phone
+            </button>
+        </div>
         <button class="lightbox-close-btn" onclick="closeImageLightbox()">✕</button>
         <img id="lightbox-enlarged-img" class="lightbox-img" src="" onclick="event.stopPropagation()" />
     </div>
@@ -697,7 +703,7 @@
                 const techStr = prior.technician ? `by ${prior.technician}` : '';
 
                 banner.style.display = 'block';
-                text.innerText = `Dial: ${priorVal.toLocaleString()} (${prior.unitLabel || 'Units'}) on ${dateStr} ${techStr}`;
+                text.innerText = `Dial: ${Number(priorVal).toLocaleString()} (${prior.unitLabel || 'Units'}) on ${dateStr} ${techStr}`;
                 badge.innerText = "✓ Linked to History";
                 badge.style.color = "#10b981";
             } else {
@@ -727,8 +733,52 @@
         }
 
         // --------------------------------------------------------------------
-        // Multi-Photo Capture Engine (Sequential Append + Canvas Compression)
+        // Multi-Photo Capture Engine (Sequential Append + Auto-Save to Device)
         // --------------------------------------------------------------------
+        function autoSavePhotoToDevice(base64Data, filename) {
+            try {
+                const a = document.createElement('a');
+                a.href = base64Data;
+                a.download = filename || `Pivot_Photo_${Date.now()}.jpg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            } catch (e) {
+                console.warn("Auto-save download note:", e);
+            }
+        }
+
+        async function saveActiveLightboxPhoto(e) {
+            e.stopPropagation();
+            const imgElem = document.getElementById('lightbox-enlarged-img');
+            const base64Data = imgElem.src;
+            if (!base64Data) return;
+
+            const filename = `Pivot_Inspection_${Date.now()}.jpg`;
+
+            // Mobile Native Share: opens iOS / Android sheet with "Save Image" to Camera Roll!
+            if (navigator.canShare && navigator.share) {
+                try {
+                    const res = await fetch(base64Data);
+                    const blob = await res.blob();
+                    const file = new File([blob], filename, { type: "image/jpeg" });
+
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            files: [file],
+                            title: filename
+                        });
+                        return;
+                    }
+                } catch (err) {
+                    // Fall back to direct download if canceled
+                }
+            }
+
+            // Direct download fallback
+            autoSavePhotoToDevice(base64Data, filename);
+        }
+
         async function handlePhotoCapture(event) {
             const files = Array.from(event.target.files);
             if (!files || files.length === 0) return;
@@ -737,10 +787,17 @@
             badge.innerText = "Compressing...";
             badge.style.color = "#f59e0b";
 
+            const pId = document.getElementById('field-pivot-select').value || "Pivot";
+
             for (const file of files) {
                 try {
                     const compressedBase64 = await compressImageFile(file);
                     capturedPhotos.push(compressedBase64);
+
+                    // Automatically saves a copy to phone memory with the Pivot Name!
+                    const photoFilename = `${pId.replace(/[^a-zA-Z0-9-_]/g, '_')}_Photo_${capturedPhotos.length}.jpg`;
+                    autoSavePhotoToDevice(compressedBase64, photoFilename);
+
                 } catch (e) {
                     console.error("Photo compression error:", e);
                 }
@@ -848,7 +905,7 @@
             const prior = getPriorVisitRecord(pId);
 
             if (currentDt && !isNaN(currentVal) && prior) {
-                const priorVal = prior.currentReading !== undefined ? prior.currentReading : (prior.t2Reading || prior.t1Reading || 0);
+                const priorVal = prior.currentReading !== undefined ? prior.currentReading : (prior.t2Reading !== undefined ? prior.t2Reading : (prior.t1Reading || 0));
                 const dtMinutes = (new Date(currentDt) - new Date(prior.timestamp)) / (1000 * 60);
 
                 if (dtMinutes > 0 && currentVal >= priorVal) {
@@ -971,7 +1028,7 @@
             }
 
             const prior = getPriorVisitRecord(pId);
-            const priorVal = prior ? (prior.currentReading !== undefined ? prior.currentReading : (prior.t2Reading || prior.t1Reading || 0)) : null;
+            const priorVal = prior ? (prior.currentReading !== undefined ? prior.currentReading : (prior.t2Reading !== undefined ? prior.t2Reading : (prior.t1Reading || 0))) : null;
             const dtMinutes = (prior && currentDt) ? Math.max(0, (new Date(currentDt) - new Date(prior.timestamp)) / (1000 * 60)) : 0;
             const totalGal = (prior && currentVal >= priorVal) ? ((currentVal - priorVal) * unitMultiplier) : 0;
 
@@ -1081,7 +1138,7 @@
         }
 
         // --------------------------------------------------------------------
-        // Survey Table & Detail Modal (Index-Based: 100% Clickable)
+        // Survey Table & Detailed Audit Inspection Modal (Index-Based)
         // --------------------------------------------------------------------
         function renderSurveyTable() {
             const surveys = JSON.parse(localStorage.getItem('local_surveys') || '[]');
@@ -1103,9 +1160,7 @@
 
                 const tr = document.createElement('tr');
                 tr.style.cursor = 'pointer';
-                // Uses row index so EVERY row is guaranteed clickable!
                 tr.onclick = () => openSurveyDetailByIndex(idx);
-
                 tr.innerHTML = `
                     <td style="font-weight:700; color:#38bdf8;">${s.pivotId || 'Pivot'} ${photoBadge} <span style="font-size:10px; color:#64748b;">🔍</span></td>
                     <td>${flowDisplay}</td>
@@ -1129,17 +1184,14 @@
 
             document.getElementById('modal-pivot-title').innerText = item.pivotId || 'Pivot Test';
 
-            // Safe fallback for reading value
             const currentReadingVal = item.currentReading !== undefined ? item.currentReading : (item.t2Reading !== undefined ? item.t2Reading : (item.t1Reading || 0));
 
-            // Safe fallback for volume
             const volFormatted = item.totalVolumeGallons ? (
                 item.totalVolumeGallons >= 325851.4 ? 
                 `${(item.totalVolumeGallons / 325851.429).toFixed(2)} Ac-Ft` : 
                 `${Math.round(item.totalVolumeGallons).toLocaleString()} Gal`
             ) : "Initial Baseline (No Volume)";
 
-            // Multi-photo renderer
             const photos = item.photos || (item.photoBase64 ? [item.photoBase64] : []);
             let photoHtml = "";
 
@@ -1209,7 +1261,7 @@
 
             let csv = "Timestamp,Technician,Pivot ID,Transducer SN,Dial Reading,Units,Prior Timestamp,Duration Min,Volume Gallons,Flow GPM,Tap PSI,Pad Datum PSI,Tap Height in,Azimuth\n";
             surveys.forEach(s => {
-                const reading = s.currentReading !== undefined ? s.currentReading : (s.t2Reading || s.t1Reading || 0);
+                const reading = s.currentReading !== undefined ? s.currentReading : (s.t2Reading !== undefined ? s.t2Reading : (s.t1Reading || 0));
                 csv += `"${s.timestamp}","${s.technician}","${s.pivotId}","${s.transducerSn}",${reading},"${s.unitLabel || 'Gallons'}","${s.priorTimestamp || ''}",${s.durationMinutes || ''},${s.totalVolumeGallons || ''},${s.measuredFlowGpm || ''},${s.rawGaugePsi},${s.calculatedPadPsi},${s.tapHeightInches},${s.headingDeg}\n`;
             });
 
