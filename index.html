@@ -977,7 +977,7 @@
 
             const record = {
                 client_uuid: Date.now() + "_" + Math.random().toString(36).substring(2, 7),
-                timestamp: currentDt || new Date().toISOString(),
+                timestamp: currentDt ? new Date(currentDt).toISOString() : new Date().toISOString(),
                 technician: localStorage.getItem("gh_tech") || "Field Op",
                 pivotId: pId,
                 transducerSn: sn,
