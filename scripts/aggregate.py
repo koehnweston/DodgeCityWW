@@ -2,7 +2,7 @@
 """
 Field Calibration Aggregator
 Reads atomic field survey JSONs and builds canonical master deliverables
-in both CSV (spreadsheet view) and JSON (full multimedia/photo payload view).
+in both CSV and JSON formats, handling mixed timestamp formats flexibly.
 """
 
 import glob
@@ -37,22 +37,23 @@ def main():
         sys.exit(0)
 
     df = pd.DataFrame(records)
-    df["timestamp"] = pd.to_datetime(df["timestamp"])
-    df = df.sort_values("timestamp", ascending=True)
+
+    # Use format="mixed" so it cleanly handles both '2026-10-24T08:28' and '2026-10-23T14:35:12.100Z'
+    df["timestamp"] = pd.to_datetime(df["timestamp"], format="mixed", errors="coerce")
+    df = df.dropna(subset=["timestamp"]).sort_values("timestamp", ascending=True)
 
     # 1. Full Chronological Audit Logs (Both CSV and JSON)
-    # The JSON log preserves photo payloads and nested structures without CSV delimiter issues
     log_csv = os.path.join(dist_dir, "survey_audit_log.csv")
     log_json = os.path.join(dist_dir, "survey_audit_log.json")
     df.to_csv(log_csv, index=False)
-    df.to_json(log_json, orient="records", indent=2)
+    df.to_json(log_json, orient="records", indent=2, date_format="iso")
 
     # 2. Deduplicated Current Status (keeping latest test per pivot)
     latest_df = df.groupby("pivotId").last().reset_index()
     schedule_csv = os.path.join(dist_dir, "master_schedule.csv")
     schedule_json = os.path.join(dist_dir, "master_schedule.json")
     latest_df.to_csv(schedule_csv, index=False)
-    latest_df.to_json(schedule_json, orient="records", indent=2)
+    latest_df.to_json(schedule_json, orient="records", indent=2, date_format="iso")
 
     print(f"Successfully generated master deliverables for {len(latest_df)} unique pivots.")
 
