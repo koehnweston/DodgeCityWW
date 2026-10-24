@@ -259,24 +259,18 @@
             <div id="view-records" class="view-panel">
                 <div class="form-wrap">
                     <div class="card">
-                        <div class="card-header"><span>GitHub Cloud Sync Settings</span></div>
-                        <div class="form-col">
-                            <label>GitHub Organization / Username</label>
-                            <input type="text" id="cfg-gh-owner" placeholder="e.g. koehnweston" onchange="saveCloudConfig()" />
+                        <div class="card-header">
+                            <span>Cloud Sync Status</span>
+                            <span style="color:#10b981; font-weight:700;">● Active</span>
                         </div>
-                        <div class="form-col">
-                            <label>Repository Name</label>
-                            <input type="text" id="cfg-gh-repo" placeholder="e.g. DodgeCityWW" onchange="saveCloudConfig()" />
-                        </div>
-                        <div class="form-col">
-                            <label>Personal Access Token (PAT)</label>
-                            <input type="password" id="cfg-gh-token" placeholder="github_pat_..." onchange="saveCloudConfig()" />
-                        </div>
+                        <p style="font-size:11.5px; color:#94a3b8; margin: 2px 0 8px 0;">
+                            Automatic sync enabled via Cloudflare Worker. No passwords or tokens required.
+                        </p>
                         <div class="form-col">
                             <label>Field Technician Name / Initials</label>
-                            <input type="text" id="cfg-tech-name" placeholder="e.g. W. Koehn" onchange="saveCloudConfig()" />
+                            <input type="text" id="cfg-tech-name" placeholder="e.g. Weston K." onchange="saveCloudConfig()" />
                         </div>
-                        <button class="btn-secondary" onclick="syncOfflineQueueToGitHub()">🔄 Force Push Pending Records</button>
+                        <button class="btn-secondary" style="margin-top:6px;" onclick="syncOfflineQueueToGitHub()">🔄 Force Sync Pending Records</button>
                     </div>
 
                     <div class="card">
