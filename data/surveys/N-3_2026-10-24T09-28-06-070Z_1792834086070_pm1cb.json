@@ -1,0 +1,14 @@
+{
+  "client_uuid": "1792834086070_pm1cb",
+  "timestamp": "2026-10-24T09:28:06.070Z",
+  "technician": "Weston Koehn",
+  "pivotId": "N-3",
+  "transducerSn": "B53809-B",
+  "tapHeightInches": 76,
+  "headingDeg": 250,
+  "rawGaugePsi": 50,
+  "calculatedPadPsi": 52.7,
+  "measuredFlowGpm": 941,
+  "latitude": 39.163311393497274,
+  "longitude": -96.61098726534159
+}
