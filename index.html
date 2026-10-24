@@ -614,32 +614,24 @@
         }
 
         function saveCloudConfig() {
-            localStorage.setItem("gh_owner", document.getElementById("cfg-gh-owner").value.trim());
-            localStorage.setItem("gh_repo", document.getElementById("cfg-gh-repo").value.trim());
-            localStorage.setItem("gh_token", document.getElementById("cfg-gh-token").value.trim());
             localStorage.setItem("gh_tech", document.getElementById("cfg-tech-name").value.trim());
-            updateSyncPill();
         }
 
         function loadCloudConfig() {
-            document.getElementById("cfg-gh-owner").value = localStorage.getItem("gh_owner") || "koehnweston";
-            document.getElementById("cfg-gh-repo").value = localStorage.getItem("gh_repo") || "DodgeCityWW";
-            document.getElementById("cfg-gh-token").value = localStorage.getItem("gh_token") || "";
             document.getElementById("cfg-tech-name").value = localStorage.getItem("gh_tech") || "";
             updateSyncPill();
         }
 
         function updateSyncPill() {
-            const hasAuth = !!localStorage.getItem("gh_token");
             const pill = document.getElementById("sync-status-pill");
             const text = document.getElementById("sync-status-text");
 
-            if (hasAuth) {
+            if (navigator.onLine) {
                 pill.className = "status-pill active";
                 text.innerText = "Cloud Online";
             } else {
-                pill.className = "status-pill";
-                text.innerText = "Local Only";
+                pill.className = "status-pill searching";
+                text.innerText = "Offline (Queued)";
             }
         }
 
