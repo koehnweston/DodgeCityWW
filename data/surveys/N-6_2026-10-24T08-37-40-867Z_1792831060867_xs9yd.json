@@ -1,0 +1,14 @@
+{
+  "client_uuid": "1792831060867_xs9yd",
+  "timestamp": "2026-10-24T08:37:40.867Z",
+  "technician": "Field Op",
+  "pivotId": "N-6",
+  "transducerSn": "B-53754-B",
+  "tapHeightInches": 78,
+  "headingDeg": 0,
+  "rawGaugePsi": 0,
+  "calculatedPadPsi": 0,
+  "measuredFlowGpm": 514,
+  "latitude": 39.16347288487901,
+  "longitude": -96.61052798868641
+}
