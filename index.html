@@ -145,6 +145,27 @@
         }
         .detail-label { color: #94a3b8; font-weight: 600; font-size: 12px; }
         .detail-val { color: #f8fafc; font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 13px; text-align: right; }
+        /* Full-Screen Image Lightbox */
+        .lightbox-overlay {
+            display: none; position: fixed; inset: 0; z-index: 3000;
+            background: rgba(0, 0, 0, 0.94); backdrop-filter: blur(8px);
+            align-items: center; justify-content: center; padding: 12px;
+            cursor: zoom-out;
+        }
+        .lightbox-overlay.active { display: flex; }
+        .lightbox-img {
+            max-width: 96vw; max-height: 90vh; object-fit: contain;
+            border-radius: 8px; border: 2px solid #38bdf8;
+            box-shadow: 0 0 35px rgba(0,0,0,0.9);
+        }
+        .lightbox-close-btn {
+            position: absolute; top: 16px; right: 16px;
+            background: rgba(15, 23, 42, 0.85); color: #ffffff;
+            border: 1.5px solid #38bdf8; border-radius: 50%;
+            width: 38px; height: 38px; font-size: 18px; font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; z-index: 3001;
+        }
     </style>
 </head>
 <body>
@@ -390,6 +411,12 @@
                 <!-- Dynamically loaded on click -->
             </div>
         </div>
+    </div>
+
+    <!-- FULL-SCREEN PHOTO LIGHTBOX -->
+    <div id="photo-lightbox-modal" class="lightbox-overlay" onclick="closeImageLightbox()">
+        <button class="lightbox-close-btn" onclick="closeImageLightbox()">✕</button>
+        <img id="lightbox-enlarged-img" class="lightbox-img" src="" onclick="event.stopPropagation()" />
     </div>
 
     <script>
@@ -1004,12 +1031,13 @@
             if (photos.length > 0) {
                 photoHtml = `
                     <div style="margin-top:10px;">
-                        <div style="font-size:11px; color:#94a3b8; margin-bottom:6px; font-weight:700;">ATTACHED SYSTEM PHOTOS (${photos.length})</div>
+                        <div style="font-size:11px; color:#94a3b8; margin-bottom:6px; font-weight:700;">ATTACHED SYSTEM PHOTOS (${photos.length}) — TAP TO ZOOM</div>
                         <div style="display:flex; flex-direction:column; gap:10px; align-items:center;">
                             ${photos.map((p, idx) => `
                                 <div style="text-align:center; width:100%;">
-                                    <span style="font-size:9.5px; color:#64748b; font-family:monospace;">Photo ${idx + 1} of ${photos.length}</span>
-                                    <img src="${p}" style="max-height:220px; max-width:100%; border-radius:8px; border:1.5px solid #38bdf8; display:block; margin:3px auto 0 auto;" />
+                                    <span style="font-size:9.5px; color:#64748b; font-family:monospace;">Photo ${idx + 1} of ${photos.length} (Tap to enlarge 🔍)</span>
+                                    <img src="${p}" onclick="openImageLightbox('${p}')" 
+                                         style="max-height:220px; max-width:100%; border-radius:8px; border:1.5px solid #38bdf8; display:block; margin:3px auto 0 auto; cursor:pointer;" />
                                 </div>
                             `).join('')}
                         </div>
@@ -1042,6 +1070,16 @@
 
         function closeSurveyDetail() {
             document.getElementById('survey-detail-modal').classList.remove('active');
+        }
+        
+        function openImageLightbox(src) {
+            document.getElementById('lightbox-enlarged-img').src = src;
+            document.getElementById('photo-lightbox-modal').classList.add('active');
+        }
+
+        function closeImageLightbox() {
+            document.getElementById('photo-lightbox-modal').classList.remove('active');
+            document.getElementById('lightbox-enlarged-img').src = "";
         }
 
         function exportLocalCSV() {
