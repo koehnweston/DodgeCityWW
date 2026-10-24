@@ -125,16 +125,40 @@
         table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
         th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #334155; }
         th { background: #0f172a; color: #94a3b8; font-size: 9.5px; text-transform: uppercase; }
+
+        /* Survey Inspection Modal */
+        .modal-overlay {
+            display: none; position: fixed; inset: 0; z-index: 2000;
+            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(6px);
+            align-items: center; justify-content: center; padding: 16px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-card {
+            background: #1e293b; border: 1.5px solid #38bdf8; border-radius: 12px;
+            width: 100%; max-width: 460px; max-height: 85vh; overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6); display: flex; flex-direction: column;
+        }
+        .modal-header {
+            padding: 12px 16px; background: #0f172a; border-bottom: 1px solid #334155;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .modal-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+        .detail-row {
+            display: flex; justify-content: space-between; padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .detail-label { color: #94a3b8; font-weight: 600; font-size: 12px; }
+        .detail-val { color: #f8fafc; font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 13px; text-align: right; }
     </style>
 </head>
 <body>
     <div class="app-shell">
         <header class="header">
-            <div class="header-title">🚜 Dodge City Calibration</div>
+            <div class="header-title">🚜 Dodge City WW Calibration</div>
             <div class="header-badges">
-                <div id="sync-status-pill" class="status-pill">
+                <div id="sync-status-pill" class="status-pill active">
                     <span class="dot"></span>
-                    <span id="sync-status-text">Cloud Sync</span>
+                    <span id="sync-status-text">Cloud Online</span>
                 </div>
                 <div id="gps-status-pill" class="status-pill searching">
                     <span class="dot"></span>
@@ -255,7 +279,7 @@
                 </div>
             </div>
 
-            <!-- TAB 3: DATA LOG & GITHUB CONFIG -->
+            <!-- TAB 3: DATA LOG & SYNC -->
             <div id="view-records" class="view-panel">
                 <div class="form-wrap">
                     <div class="card">
@@ -316,14 +340,35 @@
         </nav>
     </div>
 
+    <!-- SURVEY DETAILS MODAL -->
+    <div id="survey-detail-modal" class="modal-overlay" onclick="closeSurveyDetail()">
+        <div class="modal-card" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div>
+                    <span style="font-size:9.5px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">Survey Audit Record</span>
+                    <div id="modal-pivot-title" style="font-size:16px; font-weight:800; color:#38bdf8;">Pivot Details</div>
+                </div>
+                <button onclick="closeSurveyDetail()" style="background:transparent; border:none; color:#94a3b8; font-size:22px; cursor:pointer;">✕</button>
+            </div>
+            <div class="modal-body" id="modal-detail-body">
+                <!-- Dynamically loaded on click -->
+            </div>
+        </div>
+    </div>
+
     <script>
         // --- CLOUDFLARE WORKER ENDPOINT ---
         const CLOUDFLARE_WORKER_URL = "https://dodge-city-ww-sync.koehnweston.workers.dev";
+
+        // Global State & Baseline Inventory
         let activePivots = [];
         let userLocation = null;
         let nearestPivot = null;
         let map, userMarker, pivotLayerGroup;
 
+        // --------------------------------------------------------------------
+        // Spatial Math: Geodesic Haversine
+        // --------------------------------------------------------------------
         function haversineFeet(lat1, lon1, lat2, lon2) {
             const R_ft = 20902231.0;
             const phi1 = lat1 * Math.PI / 180.0, phi2 = lat2 * Math.PI / 180.0;
@@ -334,6 +379,9 @@
             return 2.0 * R_ft * Math.atan2(Math.sqrt(a), Math.sqrt(1.0 - a));
         }
 
+        // --------------------------------------------------------------------
+        // Dynamic GeoJSON Asset Ingestion (Your Shapefile Output)
+        // --------------------------------------------------------------------
         async function loadDynamicPivotRegistry() {
             try {
                 const resp = await fetch('data/default_pivots.geojson?t=' + Date.now());
@@ -372,10 +420,13 @@
                     }
                 }
             } catch (err) {
-                console.warn("GeoJSON Registry load notice:", err.message);
+                console.warn("GeoJSON Registry notice:", err.message);
             }
         }
 
+        // --------------------------------------------------------------------
+        // Map Rendering (Draws Polygons + Center Pad Nodes + Click-to-Form)
+        // --------------------------------------------------------------------
         function initMap() {
             map = L.map('map', { zoomControl: false, attributionControl: false }).setView([37.755, -100.02], 13);
             L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
@@ -422,6 +473,9 @@
             });
         }
 
+        // --------------------------------------------------------------------
+        // GPS Tracking & Proximity HUD
+        // --------------------------------------------------------------------
         function startGpsTracking() {
             const statusPill = document.getElementById('gps-status-pill');
             const statusText = document.getElementById('gps-status-text');
@@ -499,7 +553,6 @@
         function lockCurrentPivot() {
             if (nearestPivot) {
                 selectAndBindPivot(nearestPivot.id);
-                switchView('view-form');
             }
         }
 
@@ -507,9 +560,7 @@
             const sel = document.getElementById('field-pivot-select');
             sel.value = pivotId;
             onPivotSelectionChanged();
-            
-            // Jumps directly to the calibration form!
-            switchView('view-form');
+            switchView('view-form'); // Immediately jumps to calibration form
         }
 
         function onPivotSelectionChanged() {
@@ -524,6 +575,9 @@
             }
         }
 
+        // --------------------------------------------------------------------
+        // Hydraulic Calculation Engine
+        // --------------------------------------------------------------------
         function runLiveHydraulics() {
             const pId = document.getElementById('field-pivot-select').value;
             const pivot = activePivots.find(x => x.id === pId) || { design_gpm: 800, reg_psi: 15, max_elev_diff: 10 };
@@ -613,6 +667,9 @@
             reader.readAsText(file);
         }
 
+        // --------------------------------------------------------------------
+        // Cloud Sync & Local Storage
+        // --------------------------------------------------------------------
         function saveCloudConfig() {
             localStorage.setItem("gh_tech", document.getElementById("cfg-tech-name").value.trim());
         }
@@ -668,7 +725,7 @@
             localStorage.setItem('local_surveys', JSON.stringify(allSurveys));
 
             renderSurveyTable();
-            alert(`Record for ${pId} preserved locally.`);
+            alert(`Record for ${pId} saved to device.`);
             syncOfflineQueueToGitHub();
             switchView('view-records');
         }
@@ -694,7 +751,7 @@
 
                     const res = await resp.json();
                     if (!res.success) {
-                        console.error("Worker sync error:", res.error);
+                        console.error("Worker sync rejected:", res.error);
                         remaining.push(item);
                     }
                 } catch (e) {
@@ -709,24 +766,63 @@
             renderSurveyTable();
         }
 
+        // --------------------------------------------------------------------
+        // Survey Table & Detail Inspection Modal
+        // --------------------------------------------------------------------
         function renderSurveyTable() {
             const surveys = JSON.parse(localStorage.getItem('local_surveys') || '[]');
             const queue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
             const tbody = document.getElementById('survey-log-tbody');
-            document.getElementById('record-count-badge').innerText = `${surveys.length} Local`;
+            document.getElementById('record-count-badge').innerText = `${surveys.length} Local (Tap to view)`;
             tbody.innerHTML = '';
 
-            surveys.forEach(s => {
+            surveys.slice().reverse().forEach(s => {
                 const isPending = queue.some(q => q.client_uuid === s.client_uuid);
                 const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
+                tr.onclick = () => openSurveyDetail(s.client_uuid);
                 tr.innerHTML = `
-                    <td style="font-weight:700; color:#38bdf8;">${s.pivotId}</td>
+                    <td style="font-weight:700; color:#38bdf8;">${s.pivotId} <span style="font-size:10px; color:#64748b;">🔍</span></td>
                     <td>${Math.round(s.measuredFlowGpm)} GPM</td>
                     <td>${s.calculatedPadPsi.toFixed(1)} PSI</td>
-                    <td><span class="badge ${isPending ? 'badge-fail' : 'badge-pass'}">${isPending ? 'Pending' : 'Pushed'}</span></td>
+                    <td><span class="badge ${isPending ? 'badge-fail' : 'badge-pass'}">${isPending ? 'Pending' : 'Synced'}</span></td>
                 `;
                 tbody.appendChild(tr);
             });
+        }
+
+        function openSurveyDetail(uuid) {
+            const surveys = JSON.parse(localStorage.getItem('local_surveys') || '[]');
+            const queue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
+            const item = surveys.find(x => x.client_uuid === uuid);
+            if (!item) return;
+
+            const isPending = queue.some(q => q.client_uuid === item.client_uuid);
+            const dateStr = new Date(item.timestamp).toLocaleString();
+
+            document.getElementById('modal-pivot-title').innerText = item.pivotId;
+
+            const body = document.getElementById('modal-detail-body');
+            body.innerHTML = `
+                <div class="detail-row"><span class="detail-label">Sync Status</span><span class="detail-val"><span class="badge ${isPending ? 'badge-fail' : 'badge-pass'}">${isPending ? 'Queued (Pending Upload)' : 'Synced to GitHub'}</span></span></div>
+                <div class="detail-row"><span class="detail-label">Recorded At</span><span class="detail-val" style="font-size:11.5px;">${dateStr}</span></div>
+                <div class="detail-row"><span class="detail-label">Technician</span><span class="detail-val">${item.technician || 'Field Op'}</span></div>
+                <div class="detail-row"><span class="detail-label">Transducer S/N</span><span class="detail-val" style="color:#38bdf8;">${item.transducerSn || 'Unassigned'}</span></div>
+                <div class="detail-row"><span class="detail-label">Riser Tap Height</span><span class="detail-val">${item.tapHeightInches}" above slab</span></div>
+                <div class="detail-row"><span class="detail-label">Span Azimuth</span><span class="detail-val">${item.headingDeg}°</span></div>
+                <div class="detail-row"><span class="detail-label">Gauge Tap Pressure</span><span class="detail-val">${item.rawGaugePsi.toFixed(1)} PSI</span></div>
+                <div class="detail-row"><span class="detail-label">Pad Datum Pressure</span><span class="detail-val" style="color:#10b981;">${item.calculatedPadPsi.toFixed(1)} PSI</span></div>
+                <div class="detail-row"><span class="detail-label">Continuous Flow</span><span class="detail-val" style="color:#38bdf8;">${Math.round(item.measuredFlowGpm)} GPM</span></div>
+                <div class="detail-row"><span class="detail-label">Field GPS Fix</span><span class="detail-val" style="font-size:11px;">${item.latitude ? `${item.latitude.toFixed(5)}, ${item.longitude.toFixed(5)}` : 'No Fix'}</span></div>
+                <div class="detail-row"><span class="detail-label">Record UUID</span><span class="detail-val" style="font-size:10px; color:#64748b;">${item.client_uuid}</span></div>
+                <button onclick="closeSurveyDetail()" class="btn-secondary" style="margin-top:10px;">Close Details</button>
+            `;
+
+            document.getElementById('survey-detail-modal').classList.add('active');
+        }
+
+        function closeSurveyDetail() {
+            document.getElementById('survey-detail-modal').classList.remove('active');
         }
 
         function exportLocalCSV() {
@@ -754,6 +850,9 @@
             }
         }
 
+        // --------------------------------------------------------------------
+        // UI Tabs & Selectors
+        // --------------------------------------------------------------------
         function switchView(viewId) {
             document.querySelectorAll('.view-panel').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -789,6 +888,9 @@
             document.getElementById('field-t1-time').value = `${pad(past.getHours())}:${pad(past.getMinutes())}`;
         }
 
+        // --------------------------------------------------------------------
+        // App Lifecycle Bootstrapping
+        // --------------------------------------------------------------------
         window.addEventListener('DOMContentLoaded', () => {
             initMap();
             loadCloudConfig();
