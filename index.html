@@ -53,16 +53,12 @@
             background: rgba(15, 23, 42, 0.94); border: 1.5px solid #38bdf8;
             border-radius: 10px; padding: 10px 14px; backdrop-filter: blur(8px);
             display: flex; align-items: center; justify-content: space-between;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 18px rgba(0,0,0,0.5); transition: border-color 0.3s;
         }
         .hud-left { display: flex; flex-direction: column; }
         .hud-title { font-size: 9.5px; text-transform: uppercase; color: #94a3b8; font-weight: 800; letter-spacing: 0.5px; }
         .hud-pivot { font-size: 15px; font-weight: 800; color: #38bdf8; }
         .hud-dist { font-size: 11.5px; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; }
-        .btn-hud-action {
-            background: #0284c7; color: white; border: none; font-size: 12px; font-weight: 700;
-            padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: 0.2s;
-        }
 
         /* Forms */
         .form-wrap { padding: 16px; max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
@@ -70,7 +66,7 @@
             background: #1e293b; border: 1px solid #334155; border-radius: 10px;
             padding: 14px; display: flex; flex-direction: column; gap: 10px;
         }
-        .card-header { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; display: flex; justify-content: space-between; }
+        .card-header { font-size: 11px; font-weight: 800; text-transform: uppercase; color: #94a3b8; letter-spacing: 0.5px; display: flex; justify-content: space-between; align-items: center; }
         .form-row { display: flex; gap: 10px; }
         .form-col { flex: 1; display: flex; flex-direction: column; gap: 4px; }
         label { font-size: 11px; font-weight: 600; color: #cbd5e1; }
@@ -177,7 +173,6 @@
                         <span class="hud-pivot" id="hud-nearest-name">Locating...</span>
                         <span class="hud-dist" id="hud-nearest-dist">-- ft</span>
                     </div>
-                    <button class="btn-hud-action" id="btn-lock-pivot" onclick="lockCurrentPivot()">Locate</button>
                 </div>
             </div>
 
@@ -205,7 +200,7 @@
                         <div class="card-header"><span>2. Physical Tap &amp; Orientation</span></div>
                         <div class="form-row">
                             <div class="form-col">
-                                <label>Tap Height Above Concrete Slab (Inches)</label>
+                                <label>Tap Height Above Slab (Inches)</label>
                                 <input type="number" step="0.25" id="field-tap-height-in" value="78.0" oninput="runLiveHydraulics()" class="numeric-field" />
                             </div>
                             <div class="form-col">
@@ -216,16 +211,21 @@
                     </div>
 
                     <div class="card">
-                        <div class="card-header"><span>3. Totalizing Flow Window (Date &amp; Time)</span></div>
+                        <div class="card-header"><span>3. Totalizing Flow Window</span></div>
                         <div class="form-col">
                             <label>Meter Unit Scale</label>
-                            <select id="field-meter-units" onchange="runLiveHydraulics()">
+                            <select id="field-meter-units" onchange="onMeterUnitChange()">
                                 <option value="1">Gallons (Gal)</option>
                                 <option value="1000">1,000 Gallons (×1,000 Gal)</option>
                                 <option value="325851.429">Acre-Feet (Ac-Ft)</option>
                                 <option value="325.851429">0.001 Acre-Feet (Milli Ac-Ft)</option>
                                 <option value="7.48052">Cubic Feet (Cu-Ft)</option>
+                                <option value="custom">⚙️ Custom Gallons Multiplier...</option>
                             </select>
+                        </div>
+                        <div class="form-col" id="custom-multiplier-wrap" style="display:none; margin-top:6px;">
+                            <label>Custom Gallons per 1 Totalizer Unit</label>
+                            <input type="number" step="any" id="field-custom-multiplier" placeholder="e.g. 100 or 435.6" oninput="runLiveHydraulics()" class="numeric-field" />
                         </div>
                         <div class="form-row" style="margin-top:6px;">
                             <div class="form-col">
@@ -253,7 +253,7 @@
                         <div class="card-header"><span>4. Pressure Transducer Reading</span></div>
                         <div class="form-row">
                             <div class="form-col">
-                                <label>Steady Riser Tap Reading (PSI)</label>
+                                <label>Steady Tap Reading (PSI)</label>
                                 <input type="number" step="0.1" id="field-gauge-psi" placeholder="Tap PSI" oninput="runLiveHydraulics()" class="numeric-field" />
                             </div>
                             <div class="form-col">
@@ -263,8 +263,23 @@
                         </div>
                     </div>
 
+                    <!-- CAMERA PHOTO CAPTURE CARD -->
                     <div class="card">
-                        <div class="card-header"><span>5. Instantaneous Field Diagnostics</span></div>
+                        <div class="card-header">
+                            <span>5. System Photo Log</span>
+                            <span id="photo-status-badge" style="color:#94a3b8; font-weight:700;">No Photo</span>
+                        </div>
+                        <label>Capture / Upload Riser, Gauge, or Flow Meter</label>
+                        <input type="file" id="field-photo-input" accept="image/*" capture="environment" onchange="handlePhotoCapture(event)" style="font-size:11px; padding:6px;" />
+                        <div id="photo-preview-wrap" style="display:none; margin-top:8px; text-align:center;">
+                            <img id="photo-preview-img" src="" style="max-height:160px; max-width:100%; border-radius:6px; border:1px solid #38bdf8;" />
+                            <br>
+                            <button type="button" onclick="clearCapturedPhoto()" class="btn-secondary" style="margin-top:6px; padding:4px 10px; font-size:11px;">Remove Photo</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header"><span>6. Instantaneous Field Diagnostics</span></div>
                         <div class="calc-preview-box">
                             <div class="calc-stat">
                                 <span class="calc-stat-label">PAD DATUM PRESSURE</span>
@@ -378,6 +393,7 @@
         let userLocation = null;
         let nearestPivot = null;
         let map, userMarker, pivotLayerGroup;
+        let capturedPhotoBase64 = null;
 
         // --------------------------------------------------------------------
         // Spatial Math: Geodesic Haversine
@@ -450,7 +466,6 @@
             pivotLayerGroup.clearLayers();
 
             activePivots.forEach(p => {
-                // Uniform high-contrast styling for all pivots (No scenario color-coding)
                 const polyColor = "#38bdf8";
 
                 const popupHtml = `
@@ -466,7 +481,6 @@
                     </div>
                 `;
 
-                // 1. Pivot Boundary Footprint
                 if (p.polygon) {
                     const polyLayer = L.geoJSON(p.polygon, {
                         style: { color: polyColor, weight: 2, fillColor: polyColor, fillOpacity: 0.18 }
@@ -475,7 +489,6 @@
                     pivotLayerGroup.addLayer(polyLayer);
                 }
 
-                // 2. Center Pad Pin
                 if (p.lat && p.lon) {
                     const padMarker = L.circleMarker([p.lat, p.lon], {
                         radius: 7, fillColor: "#38bdf8", color: "#ffffff", weight: 2, fillOpacity: 1.0
@@ -487,7 +500,7 @@
         }
 
         // --------------------------------------------------------------------
-        // GPS Proximity Engine
+        // GPS Proximity Engine (Clean HUD Banner)
         // --------------------------------------------------------------------
         function startGpsTracking() {
             const statusPill = document.getElementById('gps-status-pill');
@@ -541,7 +554,6 @@
             const hudPivot = document.getElementById('hud-nearest-name');
             const hudDist = document.getElementById('hud-nearest-dist');
             const hudPanel = document.getElementById('hud-panel');
-            const lockBtn = document.getElementById('btn-lock-pivot');
 
             if (closest) {
                 hudPivot.innerText = closest.id;
@@ -549,23 +561,13 @@
 
                 if (minD <= 300) {
                     hudPanel.style.borderColor = '#10b981';
-                    lockBtn.innerText = "Lock & Calibrate";
-                    lockBtn.style.background = "#10b981";
                     document.getElementById('auto-lock-indicator').innerText = "GPS Auto-Locked (<300 ft)";
                     document.getElementById('auto-lock-indicator').style.color = "#10b981";
                 } else {
                     hudPanel.style.borderColor = '#38bdf8';
-                    lockBtn.innerText = "View Form";
-                    lockBtn.style.background = "#0284c7";
                     document.getElementById('auto-lock-indicator').innerText = "Manual";
                     document.getElementById('auto-lock-indicator').style.color = "#94a3b8";
                 }
-            }
-        }
-
-        function lockCurrentPivot() {
-            if (nearestPivot) {
-                selectAndBindPivot(nearestPivot.id);
             }
         }
 
@@ -589,7 +591,80 @@
         }
 
         // --------------------------------------------------------------------
-        // Hydraulic Calculation Engine (Flexible Units & Multi-Day Spans)
+        // Unit Scaling & Custom Multiplier
+        // --------------------------------------------------------------------
+        function onMeterUnitChange() {
+            const selVal = document.getElementById('field-meter-units').value;
+            const customWrap = document.getElementById('custom-multiplier-wrap');
+
+            if (selVal === 'custom') {
+                customWrap.style.display = 'flex';
+            } else {
+                customWrap.style.display = 'none';
+            }
+            runLiveHydraulics();
+        }
+
+        function getActiveUnitMultiplier() {
+            const selVal = document.getElementById('field-meter-units').value;
+            if (selVal === 'custom') {
+                return parseFloat(document.getElementById('field-custom-multiplier').value) || 1.0;
+            }
+            return parseFloat(selVal) || 1.0;
+        }
+
+        // --------------------------------------------------------------------
+        // Camera Photo Log & Client-Side Image Compression
+        // --------------------------------------------------------------------
+        function handlePhotoCapture(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    const maxDim = 1000; // Resize to max 1000px dimension
+
+                    if (width > height && width > maxDim) {
+                        height = Math.round(height * (maxDim / width));
+                        width = maxDim;
+                    } else if (height > maxDim) {
+                        width = Math.round(width * (maxDim / height));
+                        height = maxDim;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // Compress to lightweight JPEG (typically ~80KB)
+                    capturedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.70);
+
+                    document.getElementById('photo-preview-img').src = capturedPhotoBase64;
+                    document.getElementById('photo-preview-wrap').style.display = 'block';
+                    document.getElementById('photo-status-badge').innerText = "✓ Attached";
+                    document.getElementById('photo-status-badge').style.color = "#10b981";
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearCapturedPhoto() {
+            capturedPhotoBase64 = null;
+            document.getElementById('field-photo-input').value = "";
+            document.getElementById('photo-preview-wrap').style.display = 'none';
+            document.getElementById('photo-status-badge').innerText = "No Photo";
+            document.getElementById('photo-status-badge').style.color = "#94a3b8";
+        }
+
+        // --------------------------------------------------------------------
+        // Hydraulic Calculation Engine
         // --------------------------------------------------------------------
         function runLiveHydraulics() {
             const tapHeightIn = parseFloat(document.getElementById('field-tap-height-in').value) || 0;
@@ -600,12 +675,12 @@
             const padPsi = rawPsi > 0 ? (rawPsi + datumCorrection) : 0;
             document.getElementById('diag-pad-psi').innerText = padPsi > 0 ? `${padPsi.toFixed(1)} PSI` : '-- PSI';
 
-            // 2. Flow Rate across Datetime Window & Selected Units
+            // 2. Flow Rate across Datetime Window & Custom Units
             const t1Iso = document.getElementById('field-t1-datetime').value;
             const t2Iso = document.getElementById('field-t2-datetime').value;
             const v1 = parseFloat(document.getElementById('field-t1-val').value);
             const v2 = parseFloat(document.getElementById('field-t2-val').value);
-            const unitMultiplier = parseFloat(document.getElementById('field-meter-units').value) || 1.0;
+            const unitMultiplier = getActiveUnitMultiplier();
 
             const durationElem = document.getElementById('diag-duration');
             const flowElem = document.getElementById('diag-flow-gpm');
@@ -620,12 +695,10 @@
 
                     flowElem.innerText = `${Math.round(gpm).toLocaleString()} GPM`;
 
-                    // Format Duration
                     const hrs = Math.floor(dtMinutes / 60);
                     const mins = Math.round(dtMinutes % 60);
                     durationElem.innerText = hrs > 0 ? `${hrs}h ${mins}m` : `${mins} min`;
 
-                    // Format Volume
                     if (totalGal >= 325851.4) {
                         volumeElem.innerText = `${(totalGal / 325851.429).toFixed(2)} Ac-Ft`;
                     } else {
@@ -712,8 +785,9 @@
             const t2Iso = document.getElementById('field-t2-datetime').value;
             const v1 = parseFloat(document.getElementById('field-t1-val').value) || 0;
             const v2 = parseFloat(document.getElementById('field-t2-val').value) || 0;
-            const unitMultiplier = parseFloat(document.getElementById('field-meter-units').value) || 1.0;
-            const unitText = document.getElementById('field-meter-units').options[document.getElementById('field-meter-units').selectedIndex].text;
+            const unitMultiplier = getActiveUnitMultiplier();
+            const unitSelect = document.getElementById('field-meter-units');
+            const unitText = unitSelect.value === 'custom' ? `Custom (×${unitMultiplier})` : unitSelect.options[unitSelect.selectedIndex].text;
 
             const dtMinutes = (t1Iso && t2Iso) ? ((new Date(t2Iso) - new Date(t1Iso)) / (1000 * 60)) : 0;
             const totalGal = (v2 - v1) * unitMultiplier;
@@ -736,6 +810,7 @@
                 totalVolumeGallons: totalGal,
                 durationMinutes: Math.round(dtMinutes),
                 unitLabel: unitText,
+                photoBase64: capturedPhotoBase64, // Attached compressed photo
                 latitude: userLocation ? userLocation.lat : null,
                 longitude: userLocation ? userLocation.lon : null
             };
@@ -750,6 +825,10 @@
 
             renderSurveyTable();
             alert(`Survey recorded for ${pId}.`);
+            
+            // Reset photo for next test
+            clearCapturedPhoto();
+            
             syncOfflineQueueToGitHub();
             switchView('view-records');
         }
@@ -836,7 +915,6 @@
 
                 localStorage.setItem('local_surveys', JSON.stringify(merged));
                 renderSurveyTable();
-                console.log(`Synchronized ${cloudRecords.length} team surveys from Cloud.`);
             } catch (err) {
                 console.warn("Cloud log fetch note:", err.message);
             }
@@ -858,7 +936,7 @@
                 tr.style.cursor = 'pointer';
                 tr.onclick = () => openSurveyDetail(s.client_uuid);
                 tr.innerHTML = `
-                    <td style="font-weight:700; color:#38bdf8;">${s.pivotId} <span style="font-size:10px; color:#64748b;">🔍</span></td>
+                    <td style="font-weight:700; color:#38bdf8;">${s.pivotId} ${s.photoBase64 ? '📷' : ''} <span style="font-size:10px; color:#64748b;">🔍</span></td>
                     <td>${Math.round(s.measuredFlowGpm).toLocaleString()} GPM</td>
                     <td>${s.calculatedPadPsi.toFixed(1)} PSI</td>
                     <td><span class="badge ${isPending ? 'badge-fail' : 'badge-pass'}">${isPending ? 'Pending' : 'Synced'}</span></td>
@@ -884,6 +962,13 @@
                 `${Math.round(item.totalVolumeGallons).toLocaleString()} Gal`
             ) : "N/A";
 
+            const photoHtml = item.photoBase64 ? `
+                <div style="margin-top:10px; text-align:center;">
+                    <div style="font-size:11px; color:#94a3b8; margin-bottom:4px; font-weight:700;">ATTACHED SYSTEM PHOTO</div>
+                    <img src="${item.photoBase64}" style="max-height:220px; max-width:100%; border-radius:8px; border:1.5px solid #38bdf8;" />
+                </div>
+            ` : "";
+
             const body = document.getElementById('modal-detail-body');
             body.innerHTML = `
                 <div class="detail-row"><span class="detail-label">Sync Status</span><span class="detail-val"><span class="badge ${isPending ? 'badge-fail' : 'badge-pass'}">${isPending ? 'Queued (Pending Upload)' : 'Synced to Cloud'}</span></span></div>
@@ -900,7 +985,8 @@
                 <div class="detail-row"><span class="detail-label">Meter Units Scale</span><span class="detail-val" style="font-size:11px;">${item.unitLabel || 'Gallons'}</span></div>
                 <div class="detail-row"><span class="detail-label">Field GPS Fix</span><span class="detail-val" style="font-size:11px;">${item.latitude ? `${item.latitude.toFixed(5)}, ${item.longitude.toFixed(5)}` : 'No Fix'}</span></div>
                 <div class="detail-row"><span class="detail-label">Record UUID</span><span class="detail-val" style="font-size:10px; color:#64748b;">${item.client_uuid}</span></div>
-                <button onclick="closeSurveyDetail()" class="btn-secondary" style="margin-top:10px;">Close Details</button>
+                ${photoHtml}
+                <button onclick="closeSurveyDetail()" class="btn-secondary" style="margin-top:12px;">Close Details</button>
             `;
 
             document.getElementById('survey-detail-modal').classList.add('active');
@@ -965,7 +1051,7 @@
 
         function setDefaultDateTimes() {
             const now = new Date();
-            const past = new Date(now.getTime() - 60 * 60000); // 1 hour prior
+            const past = new Date(now.getTime() - 60 * 60000);
 
             const toLocalIso = (d) => {
                 const pad = n => String(n).padStart(2, '0');
@@ -987,8 +1073,6 @@
             renderSurveyTable();
             setDefaultDateTimes();
             loadDynamicPivotRegistry();
-
-            // Pull latest cloud tests on startup
             fetchCloudSurveyLog();
 
             window.addEventListener('online', syncOfflineQueueToGitHub);
