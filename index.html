@@ -392,20 +392,34 @@
             activePivots.forEach(p => {
                 const color = p.status === 'Complete' ? '#10b981' : (p.status === 'Still Irrigating' ? '#a855f7' : '#38bdf8');
 
+                const popupHtml = `
+                    <div style="font-size:13px; color:#f8fafc; font-family:'Inter',sans-serif;">
+                        <b style="color:#38bdf8; font-size:15px;">${p.id}</b><br>
+                        <b>Transducer S/N:</b> ${p.sn || 'Unassigned'}<br>
+                        <b>Status:</b> ${p.status}<br>
+                        <button onclick="selectAndBindPivot('${p.id}')" 
+                                style="margin-top:10px; width:100%; background:#0284c7; color:white; border:none; padding:8px; border-radius:6px; font-weight:700; cursor:pointer;">
+                            📝 Open Calibration Form
+                        </button>
+                    </div>
+                `;
+
+                // 1. Pivot Boundary Footprint
                 if (p.polygon) {
                     const polyLayer = L.geoJSON(p.polygon, {
                         style: { color: color, weight: 2, fillColor: color, fillOpacity: 0.25 }
                     });
-                    polyLayer.bindTooltip(`<b>${p.id}</b>`);
+                    polyLayer.bindPopup(popupHtml);
                     polyLayer.on('click', () => selectAndBindPivot(p.id));
                     pivotLayerGroup.addLayer(polyLayer);
                 }
 
+                // 2. Physical Center Pad Pin
                 if (p.lat && p.lon) {
                     const padMarker = L.circleMarker([p.lat, p.lon], {
-                        radius: 7, fillColor: color, color: '#ffffff', weight: 2, fillOpacity: 1.0
+                        radius: 8, fillColor: color, color: '#ffffff', weight: 2, fillOpacity: 1.0
                     });
-                    padMarker.bindTooltip(`<b>${p.id} Pad</b><br>S/N: ${p.sn || 'None'}`);
+                    padMarker.bindPopup(popupHtml);
                     padMarker.on('click', () => selectAndBindPivot(p.id));
                     pivotLayerGroup.addLayer(padMarker);
                 }
@@ -497,6 +511,9 @@
             const sel = document.getElementById('field-pivot-select');
             sel.value = pivotId;
             onPivotSelectionChanged();
+            
+            // Jumps directly to the calibration form!
+            switchView('view-form');
         }
 
         function onPivotSelectionChanged() {
