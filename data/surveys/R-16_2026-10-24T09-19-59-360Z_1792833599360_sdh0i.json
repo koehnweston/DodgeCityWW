@@ -1,0 +1,14 @@
+{
+  "client_uuid": "1792833599360_sdh0i",
+  "timestamp": "2026-10-24T09:19:59.360Z",
+  "technician": "WK",
+  "pivotId": "R-16",
+  "transducerSn": "B53254-B",
+  "tapHeightInches": 78,
+  "headingDeg": 0,
+  "rawGaugePsi": 0,
+  "calculatedPadPsi": 0,
+  "measuredFlowGpm": 0,
+  "latitude": 39.16341607783228,
+  "longitude": -96.61057326764312
+}
