@@ -88,7 +88,7 @@
             padding: 10px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px;
         }
         .calc-stat { display: flex; flex-direction: column; }
-        .calc-stat-label { font-size: 9.5px; color: #64748b; font-weight: 700; }
+        .calc-stat-label { font-size: 9.5px; color: #64748b; font-weight: 700; text-transform: uppercase; }
         .calc-stat-val { font-size: 13.5px; font-weight: 800; color: #38bdf8; font-family: 'JetBrains Mono', monospace; }
         .badge {
             display: inline-flex; align-items: center; justify-content: center;
@@ -135,7 +135,7 @@
         .modal-overlay.active { display: flex; }
         .modal-card {
             background: #1e293b; border: 1.5px solid #38bdf8; border-radius: 12px;
-            width: 100%; max-width: 460px; max-height: 85vh; overflow-y: auto;
+            width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto;
             box-shadow: 0 10px 30px rgba(0,0,0,0.6); display: flex; flex-direction: column;
         }
         .modal-header {
@@ -216,25 +216,35 @@
                     </div>
 
                     <div class="card">
-                        <div class="card-header"><span>3. Totalizing Flow Window (T1 to T2)</span></div>
-                        <div class="form-row">
+                        <div class="card-header"><span>3. Totalizing Flow Window (Date &amp; Time)</span></div>
+                        <div class="form-col">
+                            <label>Meter Unit Scale</label>
+                            <select id="field-meter-units" onchange="runLiveHydraulics()">
+                                <option value="1">Gallons (Gal)</option>
+                                <option value="1000">1,000 Gallons (×1,000 Gal)</option>
+                                <option value="325851.429">Acre-Feet (Ac-Ft)</option>
+                                <option value="325.851429">0.001 Acre-Feet (Milli Ac-Ft)</option>
+                                <option value="7.48052">Cubic Feet (Cu-Ft)</option>
+                            </select>
+                        </div>
+                        <div class="form-row" style="margin-top:6px;">
                             <div class="form-col">
-                                <label>T1 Time</label>
-                                <input type="time" id="field-t1-time" onchange="runLiveHydraulics()" />
+                                <label>T1 Start (Date &amp; Time)</label>
+                                <input type="datetime-local" id="field-t1-datetime" onchange="runLiveHydraulics()" />
                             </div>
                             <div class="form-col">
-                                <label>T1 Totalizer (Gal)</label>
-                                <input type="number" id="field-t1-gal" placeholder="T1" oninput="runLiveHydraulics()" class="numeric-field" />
+                                <label>T1 Reading</label>
+                                <input type="number" step="any" id="field-t1-val" placeholder="T1 Totalizer" oninput="runLiveHydraulics()" class="numeric-field" />
                             </div>
                         </div>
                         <div class="form-row">
                             <div class="form-col">
-                                <label>T2 Time</label>
-                                <input type="time" id="field-t2-time" onchange="runLiveHydraulics()" />
+                                <label>T2 End (Date &amp; Time)</label>
+                                <input type="datetime-local" id="field-t2-datetime" onchange="runLiveHydraulics()" />
                             </div>
                             <div class="form-col">
-                                <label>T2 Totalizer (Gal)</label>
-                                <input type="number" id="field-t2-gal" placeholder="T2" oninput="runLiveHydraulics()" class="numeric-field" />
+                                <label>T2 Reading</label>
+                                <input type="number" step="any" id="field-t2-val" placeholder="T2 Totalizer" oninput="runLiveHydraulics()" class="numeric-field" />
                             </div>
                         </div>
                     </div>
@@ -254,23 +264,23 @@
                     </div>
 
                     <div class="card">
-                        <div class="card-header"><span>5. Live Hydraulic QA/QC Diagnostics</span></div>
+                        <div class="card-header"><span>5. Instantaneous Field Diagnostics</span></div>
                         <div class="calc-preview-box">
                             <div class="calc-stat">
                                 <span class="calc-stat-label">PAD DATUM PRESSURE</span>
                                 <span class="calc-stat-val" id="diag-pad-psi">-- PSI</span>
                             </div>
                             <div class="calc-stat">
-                                <span class="calc-stat-label">MEASURED FLOW</span>
+                                <span class="calc-stat-label">MEASURED FLOW RATE</span>
                                 <span class="calc-stat-val" id="diag-flow-gpm">-- GPM</span>
                             </div>
                             <div class="calc-stat">
-                                <span class="calc-stat-label">FLOW TOLERANCE (±5%)</span>
-                                <span class="calc-stat-val" id="diag-flow-tol">--</span>
+                                <span class="calc-stat-label">TEST DURATION</span>
+                                <span class="calc-stat-val" id="diag-duration">--</span>
                             </div>
                             <div class="calc-stat">
-                                <span class="calc-stat-label">REGULATOR SEAT MARGIN</span>
-                                <span class="calc-stat-val" id="diag-margin">--</span>
+                                <span class="calc-stat-label">TOTAL VOLUME</span>
+                                <span class="calc-stat-val" id="diag-volume">--</span>
                             </div>
                         </div>
                     </div>
@@ -288,28 +298,31 @@
                             <span style="color:#10b981; font-weight:700;">● Active</span>
                         </div>
                         <p style="font-size:11.5px; color:#94a3b8; margin: 2px 0 8px 0;">
-                            Automatic sync enabled via Cloudflare Worker. No passwords or tokens required.
+                            Live sync enabled via Cloudflare. All surveys submitted across the crew merge automatically.
                         </p>
                         <div class="form-col">
                             <label>Field Technician Name / Initials</label>
                             <input type="text" id="cfg-tech-name" placeholder="e.g. Weston K." onchange="saveCloudConfig()" />
                         </div>
-                        <button class="btn-secondary" style="margin-top:6px;" onclick="syncOfflineQueueToGitHub()">🔄 Force Sync Pending Records</button>
+                        <div class="form-row" style="margin-top:6px;">
+                            <button class="btn-secondary" style="flex:1;" onclick="fetchCloudSurveyLog()">🔄 Refresh Team Feed</button>
+                            <button class="btn-secondary" style="flex:1;" onclick="syncOfflineQueueToGitHub()">⬆ Force Upload</button>
+                        </div>
                     </div>
 
                     <div class="card">
                         <div class="card-header">
                             <span>Logged Field Surveys</span>
-                            <span id="record-count-badge" style="color:#38bdf8; font-weight:700;">0 Local</span>
+                            <span id="record-count-badge" style="color:#38bdf8; font-weight:700;">0 Surveys</span>
                         </div>
                         <div style="overflow-x:auto;">
                             <table>
                                 <thead>
                                     <tr>
                                         <th>Pivot</th>
-                                        <th>Flow</th>
+                                        <th>Flow Rate</th>
                                         <th>Pad PSI</th>
-                                        <th>Sync</th>
+                                        <th>Status</th>
                                     </tr>
                                 </thead>
                                 <tbody id="survey-log-tbody"></tbody>
@@ -317,7 +330,7 @@
                         </div>
                         <div class="form-row" style="margin-top:10px;">
                             <button class="btn-secondary" style="flex:1;" onclick="exportLocalCSV()">⬇ Export CSV</button>
-                            <button class="btn-secondary" style="flex:1;" onclick="clearLocalStorage()">🗑 Clear Local</button>
+                            <button class="btn-secondary" style="flex:1;" onclick="clearLocalStorage()">🗑 Clear Device</button>
                         </div>
                     </div>
                 </div>
@@ -335,7 +348,7 @@
             </button>
             <button class="tab-btn" id="tab-nav-records" onclick="switchView('view-records')">
                 <span class="tab-icon">⚙️</span>
-                <span>Sync &amp; Data</span>
+                <span>Team Data</span>
             </button>
         </nav>
     </div>
@@ -345,7 +358,7 @@
         <div class="modal-card" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <div>
-                    <span style="font-size:9.5px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">Survey Audit Record</span>
+                    <span style="font-size:9.5px; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px;">Survey Inspection Record</span>
                     <div id="modal-pivot-title" style="font-size:16px; font-weight:800; color:#38bdf8;">Pivot Details</div>
                 </div>
                 <button onclick="closeSurveyDetail()" style="background:transparent; border:none; color:#94a3b8; font-size:22px; cursor:pointer;">✕</button>
@@ -360,7 +373,7 @@
         // --- CLOUDFLARE WORKER ENDPOINT ---
         const CLOUDFLARE_WORKER_URL = "https://dodge-city-ww-sync.koehnweston.workers.dev";
 
-        // Global State & Baseline Inventory
+        // Global State
         let activePivots = [];
         let userLocation = null;
         let nearestPivot = null;
@@ -380,7 +393,7 @@
         }
 
         // --------------------------------------------------------------------
-        // Dynamic GeoJSON Asset Ingestion (Your Shapefile Output)
+        // Dynamic GeoJSON Asset Ingestion
         // --------------------------------------------------------------------
         async function loadDynamicPivotRegistry() {
             try {
@@ -396,7 +409,7 @@
                     loadedPivots.push({
                         id: p.id,
                         sn: p.sn || '',
-                        status: p.status || 'Imported',
+                        status: p.status || 'Active',
                         z_rel: p.z_rel || 6.5,
                         lat: coords[1],
                         lon: coords[0],
@@ -425,7 +438,7 @@
         }
 
         // --------------------------------------------------------------------
-        // Map Rendering (Draws Polygons + Center Pad Nodes + Click-to-Form)
+        // Map Rendering (Uniform GIS Palette + Inspection Popup)
         // --------------------------------------------------------------------
         function initMap() {
             map = L.map('map', { zoomControl: false, attributionControl: false }).setView([37.755, -100.02], 13);
@@ -437,16 +450,18 @@
             pivotLayerGroup.clearLayers();
 
             activePivots.forEach(p => {
-                const color = p.status === 'Complete' ? '#10b981' : (p.status === 'Still Irrigating' ? '#a855f7' : '#38bdf8');
+                // Uniform high-contrast styling for all pivots (No scenario color-coding)
+                const polyColor = "#38bdf8";
 
                 const popupHtml = `
-                    <div style="font-size:13px; color:#f8fafc; font-family:'Inter',sans-serif;">
+                    <div style="font-size:13px; color:#f8fafc; font-family:'Inter',sans-serif; min-width:180px;">
                         <b style="color:#38bdf8; font-size:15px;">${p.id}</b><br>
-                        <b>Transducer S/N:</b> ${p.sn || 'Unassigned'}<br>
-                        <b>Status:</b> ${p.status}<br>
+                        <div style="margin:4px 0; color:#cbd5e1; font-size:12px;">
+                            <b>Transducer S/N:</b> <span style="color:#ffffff; font-family:monospace;">${p.sn || 'Unassigned'}</span>
+                        </div>
                         <button onclick="selectAndBindPivot('${p.id}')" 
-                                style="margin-top:10px; width:100%; background:#0284c7; color:white; border:none; padding:8px; border-radius:6px; font-weight:700; cursor:pointer;">
-                            📝 Open Calibration Form
+                                style="margin-top:8px; width:100%; background:#0284c7; color:white; border:none; padding:8px 10px; border-radius:6px; font-weight:700; cursor:pointer;">
+                            📝 Open Calibration Sheet
                         </button>
                     </div>
                 `;
@@ -454,27 +469,25 @@
                 // 1. Pivot Boundary Footprint
                 if (p.polygon) {
                     const polyLayer = L.geoJSON(p.polygon, {
-                        style: { color: color, weight: 2, fillColor: color, fillOpacity: 0.25 }
+                        style: { color: polyColor, weight: 2, fillColor: polyColor, fillOpacity: 0.18 }
                     });
                     polyLayer.bindPopup(popupHtml);
-                    polyLayer.on('click', () => selectAndBindPivot(p.id));
                     pivotLayerGroup.addLayer(polyLayer);
                 }
 
-                // 2. Physical Center Pad Pin
+                // 2. Center Pad Pin
                 if (p.lat && p.lon) {
                     const padMarker = L.circleMarker([p.lat, p.lon], {
-                        radius: 8, fillColor: color, color: '#ffffff', weight: 2, fillOpacity: 1.0
+                        radius: 7, fillColor: "#38bdf8", color: "#ffffff", weight: 2, fillOpacity: 1.0
                     });
                     padMarker.bindPopup(popupHtml);
-                    padMarker.on('click', () => selectAndBindPivot(p.id));
                     pivotLayerGroup.addLayer(padMarker);
                 }
             });
         }
 
         // --------------------------------------------------------------------
-        // GPS Tracking & Proximity HUD
+        // GPS Proximity Engine
         // --------------------------------------------------------------------
         function startGpsTracking() {
             const statusPill = document.getElementById('gps-status-pill');
@@ -497,7 +510,7 @@
 
                     if (!userMarker) {
                         userMarker = L.circleMarker([lat, lon], {
-                            radius: 9, fillColor: '#38bdf8', color: '#ffffff', weight: 3, fillOpacity: 1
+                            radius: 9, fillColor: '#0284c7', color: '#ffffff', weight: 3, fillOpacity: 1
                         }).addTo(map);
                     } else {
                         userMarker.setLatLng([lat, lon]);
@@ -560,7 +573,7 @@
             const sel = document.getElementById('field-pivot-select');
             sel.value = pivotId;
             onPivotSelectionChanged();
-            switchView('view-form'); // Immediately jumps to calibration form
+            switchView('view-form');
         }
 
         function onPivotSelectionChanged() {
@@ -576,63 +589,57 @@
         }
 
         // --------------------------------------------------------------------
-        // Hydraulic Calculation Engine
+        // Hydraulic Calculation Engine (Flexible Units & Multi-Day Spans)
         // --------------------------------------------------------------------
         function runLiveHydraulics() {
-            const pId = document.getElementById('field-pivot-select').value;
-            const pivot = activePivots.find(x => x.id === pId) || { design_gpm: 800, reg_psi: 15, max_elev_diff: 10 };
-
             const tapHeightIn = parseFloat(document.getElementById('field-tap-height-in').value) || 0;
             const rawPsi = parseFloat(document.getElementById('field-gauge-psi').value) || 0;
 
+            // 1. Pad Datum Elevation Correction
             const datumCorrection = (tapHeightIn / 12.0) * 0.433127;
             const padPsi = rawPsi > 0 ? (rawPsi + datumCorrection) : 0;
             document.getElementById('diag-pad-psi').innerText = padPsi > 0 ? `${padPsi.toFixed(1)} PSI` : '-- PSI';
 
-            const t1Val = document.getElementById('field-t1-time').value;
-            const t2Val = document.getElementById('field-t2-time').value;
-            const g1 = parseFloat(document.getElementById('field-t1-gal').value);
-            const g2 = parseFloat(document.getElementById('field-t2-gal').value);
+            // 2. Flow Rate across Datetime Window & Selected Units
+            const t1Iso = document.getElementById('field-t1-datetime').value;
+            const t2Iso = document.getElementById('field-t2-datetime').value;
+            const v1 = parseFloat(document.getElementById('field-t1-val').value);
+            const v2 = parseFloat(document.getElementById('field-t2-val').value);
+            const unitMultiplier = parseFloat(document.getElementById('field-meter-units').value) || 1.0;
 
-            let calculatedGpm = null;
-            if (t1Val && t2Val && !isNaN(g1) && !isNaN(g2) && g2 > g1) {
-                const [h1, m1] = t1Val.split(':').map(Number);
-                const [h2, m2] = t2Val.split(':').map(Number);
-                let dtMin = (h2 * 60 + m2) - (h1 * 60 + m1);
-                if (dtMin <= 0) dtMin += 1440;
+            const durationElem = document.getElementById('diag-duration');
+            const flowElem = document.getElementById('diag-flow-gpm');
+            const volumeElem = document.getElementById('diag-volume');
 
-                if (dtMin > 0) {
-                    calculatedGpm = (g2 - g1) / dtMin;
-                    document.getElementById('diag-flow-gpm').innerText = `${Math.round(calculatedGpm)} GPM`;
+            if (t1Iso && t2Iso && !isNaN(v1) && !isNaN(v2) && v2 >= v1) {
+                const dtMinutes = (new Date(t2Iso) - new Date(t1Iso)) / (1000 * 60);
 
-                    const pctDiff = ((calculatedGpm - pivot.design_gpm) / pivot.design_gpm) * 100;
-                    const tolElem = document.getElementById('diag-flow-tol');
-                    if (Math.abs(pctDiff) <= 5.0) {
-                        tolElem.innerHTML = `<span class="badge badge-pass">PASS (${pctDiff > 0 ? '+' : ''}${pctDiff.toFixed(1)}%)</span>`;
+                if (dtMinutes > 0) {
+                    const totalGal = (v2 - v1) * unitMultiplier;
+                    const gpm = totalGal / dtMinutes;
+
+                    flowElem.innerText = `${Math.round(gpm).toLocaleString()} GPM`;
+
+                    // Format Duration
+                    const hrs = Math.floor(dtMinutes / 60);
+                    const mins = Math.round(dtMinutes % 60);
+                    durationElem.innerText = hrs > 0 ? `${hrs}h ${mins}m` : `${mins} min`;
+
+                    // Format Volume
+                    if (totalGal >= 325851.4) {
+                        volumeElem.innerText = `${(totalGal / 325851.429).toFixed(2)} Ac-Ft`;
                     } else {
-                        tolElem.innerHTML = `<span class="badge badge-fail">FAIL (${pctDiff > 0 ? '+' : ''}${pctDiff.toFixed(1)}%)</span>`;
+                        volumeElem.innerText = `${Math.round(totalGal).toLocaleString()} Gal`;
                     }
-                }
-            } else {
-                document.getElementById('diag-flow-gpm').innerText = '-- GPM';
-                document.getElementById('diag-flow-tol').innerText = '--';
-            }
-
-            const marginElem = document.getElementById('diag-margin');
-            if (padPsi > 0) {
-                const qRatio = calculatedGpm ? (calculatedGpm / pivot.design_gpm) : 1.0;
-                const dynamicHf = 7.0 * Math.pow(qRatio, 1.852);
-                const topoHead = (pivot.max_elev_diff || 8.0) * 0.433127;
-                const requiredMinPadPsi = (pivot.reg_psi || 15.0) + 4.0 + dynamicHf + topoHead;
-                const marginDelta = padPsi - requiredMinPadPsi;
-
-                if (marginDelta >= 0) {
-                    marginElem.innerHTML = `<span class="badge badge-pass">OK (+${marginDelta.toFixed(1)} PSI)</span>`;
                 } else {
-                    marginElem.innerHTML = `<span class="badge badge-fail">DEFICIT (${marginDelta.toFixed(1)} PSI)</span>`;
+                    durationElem.innerText = "T2 <= T1";
+                    flowElem.innerText = "-- GPM";
+                    volumeElem.innerText = "--";
                 }
             } else {
-                marginElem.innerText = '--';
+                durationElem.innerText = "--";
+                flowElem.innerText = "-- GPM";
+                volumeElem.innerText = "--";
             }
         }
 
@@ -668,7 +675,7 @@
         }
 
         // --------------------------------------------------------------------
-        // Cloud Sync & Local Storage
+        // Cloud Sync Engine & Team Feed Consolidation
         // --------------------------------------------------------------------
         function saveCloudConfig() {
             localStorage.setItem("gh_tech", document.getElementById("cfg-tech-name").value.trim());
@@ -701,6 +708,16 @@
             const padPsiStr = document.getElementById('diag-pad-psi').innerText;
             const flowGpmStr = document.getElementById('diag-flow-gpm').innerText;
 
+            const t1Iso = document.getElementById('field-t1-datetime').value;
+            const t2Iso = document.getElementById('field-t2-datetime').value;
+            const v1 = parseFloat(document.getElementById('field-t1-val').value) || 0;
+            const v2 = parseFloat(document.getElementById('field-t2-val').value) || 0;
+            const unitMultiplier = parseFloat(document.getElementById('field-meter-units').value) || 1.0;
+            const unitText = document.getElementById('field-meter-units').options[document.getElementById('field-meter-units').selectedIndex].text;
+
+            const dtMinutes = (t1Iso && t2Iso) ? ((new Date(t2Iso) - new Date(t1Iso)) / (1000 * 60)) : 0;
+            const totalGal = (v2 - v1) * unitMultiplier;
+
             const record = {
                 client_uuid: Date.now() + "_" + Math.random().toString(36).substring(2, 7),
                 timestamp: new Date().toISOString(),
@@ -711,7 +728,14 @@
                 headingDeg: heading,
                 rawGaugePsi: gaugePsi,
                 calculatedPadPsi: parseFloat(padPsiStr) || 0,
-                measuredFlowGpm: parseFloat(flowGpmStr) || 0,
+                measuredFlowGpm: parseFloat(flowGpmStr.replace(/,/g, '')) || 0,
+                t1Datetime: t1Iso,
+                t1Reading: v1,
+                t2Datetime: t2Iso,
+                t2Reading: v2,
+                totalVolumeGallons: totalGal,
+                durationMinutes: Math.round(dtMinutes),
+                unitLabel: unitText,
                 latitude: userLocation ? userLocation.lat : null,
                 longitude: userLocation ? userLocation.lon : null
             };
@@ -725,7 +749,7 @@
             localStorage.setItem('local_surveys', JSON.stringify(allSurveys));
 
             renderSurveyTable();
-            alert(`Record for ${pId} saved to device.`);
+            alert(`Survey recorded for ${pId}.`);
             syncOfflineQueueToGitHub();
             switchView('view-records');
         }
@@ -751,11 +775,11 @@
 
                     const res = await resp.json();
                     if (!res.success) {
-                        console.error("Worker sync rejected:", res.error);
+                        console.error("Worker rejection:", res.error);
                         remaining.push(item);
                     }
                 } catch (e) {
-                    console.error("Network error during sync:", e);
+                    console.error("Network error:", e);
                     remaining.push(item);
                 }
             }
@@ -766,14 +790,66 @@
             renderSurveyTable();
         }
 
+        async function fetchCloudSurveyLog() {
+            try {
+                const resp = await fetch('data/dist/survey_audit_log.csv?t=' + Date.now());
+                if (!resp.ok) return;
+
+                const text = await resp.text();
+                const lines = text.trim().split('\n');
+                if (lines.length < 2) return;
+
+                const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+                const cloudRecords = [];
+
+                for (let i = 1; i < lines.length; i++) {
+                    const row = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+                    const obj = {};
+                    headers.forEach((h, idx) => obj[h] = row[idx]);
+
+                    cloudRecords.push({
+                        client_uuid: obj.client_uuid || `cloud_${i}`,
+                        timestamp: obj.timestamp,
+                        technician: obj.technician,
+                        pivotId: obj.pivotId,
+                        transducerSn: obj.transducerSn,
+                        tapHeightInches: parseFloat(obj.tapHeightInches) || 0,
+                        headingDeg: parseFloat(obj.headingDeg) || 0,
+                        rawGaugePsi: parseFloat(obj.rawGaugePsi) || 0,
+                        calculatedPadPsi: parseFloat(obj.calculatedPadPsi) || 0,
+                        measuredFlowGpm: parseFloat(obj.measuredFlowGpm) || 0,
+                        durationMinutes: parseFloat(obj.durationMinutes) || 0,
+                        totalVolumeGallons: parseFloat(obj.totalVolumeGallons) || 0,
+                        unitLabel: obj.unitLabel || "Gallons",
+                        latitude: parseFloat(obj.latitude) || null,
+                        longitude: parseFloat(obj.longitude) || null
+                    });
+                }
+
+                const localSurveys = JSON.parse(localStorage.getItem('local_surveys') || '[]');
+                const merged = [...localSurveys];
+
+                cloudRecords.forEach(cr => {
+                    const exists = merged.some(m => m.client_uuid === cr.client_uuid || (m.pivotId === cr.pivotId && m.timestamp === cr.timestamp));
+                    if (!exists) merged.push(cr);
+                });
+
+                localStorage.setItem('local_surveys', JSON.stringify(merged));
+                renderSurveyTable();
+                console.log(`Synchronized ${cloudRecords.length} team surveys from Cloud.`);
+            } catch (err) {
+                console.warn("Cloud log fetch note:", err.message);
+            }
+        }
+
         // --------------------------------------------------------------------
-        // Survey Table & Detail Inspection Modal
+        // Survey Table & Detailed Audit Inspection Modal
         // --------------------------------------------------------------------
         function renderSurveyTable() {
             const surveys = JSON.parse(localStorage.getItem('local_surveys') || '[]');
             const queue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
             const tbody = document.getElementById('survey-log-tbody');
-            document.getElementById('record-count-badge').innerText = `${surveys.length} Local (Tap to view)`;
+            document.getElementById('record-count-badge').innerText = `${surveys.length} Surveys (Tap to view)`;
             tbody.innerHTML = '';
 
             surveys.slice().reverse().forEach(s => {
@@ -783,7 +859,7 @@
                 tr.onclick = () => openSurveyDetail(s.client_uuid);
                 tr.innerHTML = `
                     <td style="font-weight:700; color:#38bdf8;">${s.pivotId} <span style="font-size:10px; color:#64748b;">🔍</span></td>
-                    <td>${Math.round(s.measuredFlowGpm)} GPM</td>
+                    <td>${Math.round(s.measuredFlowGpm).toLocaleString()} GPM</td>
                     <td>${s.calculatedPadPsi.toFixed(1)} PSI</td>
                     <td><span class="badge ${isPending ? 'badge-fail' : 'badge-pass'}">${isPending ? 'Pending' : 'Synced'}</span></td>
                 `;
@@ -802,9 +878,15 @@
 
             document.getElementById('modal-pivot-title').innerText = item.pivotId;
 
+            const volFormatted = item.totalVolumeGallons ? (
+                item.totalVolumeGallons >= 325851.4 ? 
+                `${(item.totalVolumeGallons / 325851.429).toFixed(2)} Ac-Ft` : 
+                `${Math.round(item.totalVolumeGallons).toLocaleString()} Gal`
+            ) : "N/A";
+
             const body = document.getElementById('modal-detail-body');
             body.innerHTML = `
-                <div class="detail-row"><span class="detail-label">Sync Status</span><span class="detail-val"><span class="badge ${isPending ? 'badge-fail' : 'badge-pass'}">${isPending ? 'Queued (Pending Upload)' : 'Synced to GitHub'}</span></span></div>
+                <div class="detail-row"><span class="detail-label">Sync Status</span><span class="detail-val"><span class="badge ${isPending ? 'badge-fail' : 'badge-pass'}">${isPending ? 'Queued (Pending Upload)' : 'Synced to Cloud'}</span></span></div>
                 <div class="detail-row"><span class="detail-label">Recorded At</span><span class="detail-val" style="font-size:11.5px;">${dateStr}</span></div>
                 <div class="detail-row"><span class="detail-label">Technician</span><span class="detail-val">${item.technician || 'Field Op'}</span></div>
                 <div class="detail-row"><span class="detail-label">Transducer S/N</span><span class="detail-val" style="color:#38bdf8;">${item.transducerSn || 'Unassigned'}</span></div>
@@ -812,7 +894,10 @@
                 <div class="detail-row"><span class="detail-label">Span Azimuth</span><span class="detail-val">${item.headingDeg}°</span></div>
                 <div class="detail-row"><span class="detail-label">Gauge Tap Pressure</span><span class="detail-val">${item.rawGaugePsi.toFixed(1)} PSI</span></div>
                 <div class="detail-row"><span class="detail-label">Pad Datum Pressure</span><span class="detail-val" style="color:#10b981;">${item.calculatedPadPsi.toFixed(1)} PSI</span></div>
-                <div class="detail-row"><span class="detail-label">Continuous Flow</span><span class="detail-val" style="color:#38bdf8;">${Math.round(item.measuredFlowGpm)} GPM</span></div>
+                <div class="detail-row"><span class="detail-label">Continuous Flow Rate</span><span class="detail-val" style="color:#38bdf8;">${Math.round(item.measuredFlowGpm).toLocaleString()} GPM</span></div>
+                <div class="detail-row"><span class="detail-label">Test Duration</span><span class="detail-val">${item.durationMinutes ? `${item.durationMinutes} min` : 'N/A'}</span></div>
+                <div class="detail-row"><span class="detail-label">Total Volume</span><span class="detail-val">${volFormatted}</span></div>
+                <div class="detail-row"><span class="detail-label">Meter Units Scale</span><span class="detail-val" style="font-size:11px;">${item.unitLabel || 'Gallons'}</span></div>
                 <div class="detail-row"><span class="detail-label">Field GPS Fix</span><span class="detail-val" style="font-size:11px;">${item.latitude ? `${item.latitude.toFixed(5)}, ${item.longitude.toFixed(5)}` : 'No Fix'}</span></div>
                 <div class="detail-row"><span class="detail-label">Record UUID</span><span class="detail-val" style="font-size:10px; color:#64748b;">${item.client_uuid}</span></div>
                 <button onclick="closeSurveyDetail()" class="btn-secondary" style="margin-top:10px;">Close Details</button>
@@ -829,9 +914,9 @@
             const surveys = JSON.parse(localStorage.getItem('local_surveys') || '[]');
             if (surveys.length === 0) return alert("No surveys to export.");
 
-            let csv = "Timestamp,Technician,Pivot ID,Transducer SN,Tap Height (in),Azimuth,Tap PSI,Pad Datum PSI,Flow GPM\n";
+            let csv = "Timestamp,Technician,Pivot ID,Transducer SN,Tap Height (in),Azimuth,Tap PSI,Pad Datum PSI,Flow GPM,Duration (min),Total Gallons,Units\n";
             surveys.forEach(s => {
-                csv += `"${s.timestamp}","${s.technician}","${s.pivotId}","${s.transducerSn}",${s.tapHeightInches},${s.headingDeg},${s.rawGaugePsi},${s.calculatedPadPsi},${s.measuredFlowGpm}\n`;
+                csv += `"${s.timestamp}","${s.technician}","${s.pivotId}","${s.transducerSn}",${s.tapHeightInches},${s.headingDeg},${s.rawGaugePsi},${s.calculatedPadPsi},${s.measuredFlowGpm},${s.durationMinutes || ''},${s.totalVolumeGallons || ''},"${s.unitLabel || 'Gallons'}"\n`;
             });
 
             const link = document.createElement("a");
@@ -850,9 +935,6 @@
             }
         }
 
-        // --------------------------------------------------------------------
-        // UI Tabs & Selectors
-        // --------------------------------------------------------------------
         function switchView(viewId) {
             document.querySelectorAll('.view-panel').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -865,6 +947,7 @@
                 document.getElementById('tab-nav-form').classList.add('active');
             } else if (viewId === 'view-records') {
                 document.getElementById('tab-nav-records').classList.add('active');
+                fetchCloudSurveyLog();
             }
         }
 
@@ -880,12 +963,17 @@
             onPivotSelectionChanged();
         }
 
-        function setDefaultTimes() {
+        function setDefaultDateTimes() {
             const now = new Date();
-            const pad = n => String(n).padStart(2, '0');
-            document.getElementById('field-t2-time').value = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-            const past = new Date(now.getTime() - 30 * 60000);
-            document.getElementById('field-t1-time').value = `${pad(past.getHours())}:${pad(past.getMinutes())}`;
+            const past = new Date(now.getTime() - 60 * 60000); // 1 hour prior
+
+            const toLocalIso = (d) => {
+                const pad = n => String(n).padStart(2, '0');
+                return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            };
+
+            document.getElementById('field-t2-datetime').value = toLocalIso(now);
+            document.getElementById('field-t1-datetime').value = toLocalIso(past);
         }
 
         // --------------------------------------------------------------------
@@ -897,8 +985,11 @@
             populatePivotDropdown();
             startGpsTracking();
             renderSurveyTable();
-            setDefaultTimes();
+            setDefaultDateTimes();
             loadDynamicPivotRegistry();
+
+            // Pull latest cloud tests on startup
+            fetchCloudSurveyLog();
 
             window.addEventListener('online', syncOfflineQueueToGitHub);
         });
