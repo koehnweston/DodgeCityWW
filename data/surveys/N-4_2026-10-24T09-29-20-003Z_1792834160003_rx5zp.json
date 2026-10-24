@@ -1,0 +1,14 @@
+{
+  "client_uuid": "1792834160003_rx5zp",
+  "timestamp": "2026-10-24T09:29:20.003Z",
+  "technician": "Weston Koehn",
+  "pivotId": "N-4",
+  "transducerSn": "B53755-B",
+  "tapHeightInches": 78,
+  "headingDeg": 350,
+  "rawGaugePsi": 0,
+  "calculatedPadPsi": 0,
+  "measuredFlowGpm": 0,
+  "latitude": 39.16360668204766,
+  "longitude": -96.6110727665535
+}
