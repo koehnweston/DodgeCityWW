@@ -1081,7 +1081,7 @@
         }
 
         // --------------------------------------------------------------------
-        // Survey Table & Detailed Audit Inspection Modal
+        // Survey Table & Detail Modal (Index-Based: 100% Clickable)
         // --------------------------------------------------------------------
         function renderSurveyTable() {
             const surveys = JSON.parse(localStorage.getItem('local_surveys') || '[]');
@@ -1090,42 +1090,56 @@
             document.getElementById('record-count-badge').innerText = `${surveys.length} Surveys (Tap to view)`;
             tbody.innerHTML = '';
 
-            surveys.slice().reverse().forEach(s => {
-                const isPending = queue.some(q => q.client_uuid === s.client_uuid);
+            const reversedSurveys = surveys.slice().reverse();
+
+            reversedSurveys.forEach((s, idx) => {
+                const isPending = queue.some(q => (q.client_uuid && q.client_uuid === s.client_uuid) || (q.timestamp === s.timestamp && q.pivotId === s.pivotId));
                 const photoCount = (s.photos && s.photos.length) || (s.photoBase64 ? 1 : 0);
                 const photoBadge = photoCount > 0 ? `📷 (${photoCount})` : '';
-                const flowDisplay = s.measuredFlowGpm > 0 ? `${Math.round(s.measuredFlowGpm).toLocaleString()} GPM` : 'Baseline';
+
+                const flowVal = s.measuredFlowGpm !== undefined ? s.measuredFlowGpm : (s.calculated_gpm || 0);
+                const flowDisplay = flowVal > 0 ? `${Math.round(flowVal).toLocaleString()} GPM` : 'Baseline';
+                const padPsiVal = s.calculatedPadPsi !== undefined ? s.calculatedPadPsi : (s.rawGaugePsi || 0);
 
                 const tr = document.createElement('tr');
                 tr.style.cursor = 'pointer';
-                tr.onclick = () => openSurveyDetail(s.client_uuid);
+                // Uses row index so EVERY row is guaranteed clickable!
+                tr.onclick = () => openSurveyDetailByIndex(idx);
+
                 tr.innerHTML = `
-                    <td style="font-weight:700; color:#38bdf8;">${s.pivotId} ${photoBadge} <span style="font-size:10px; color:#64748b;">🔍</span></td>
+                    <td style="font-weight:700; color:#38bdf8;">${s.pivotId || 'Pivot'} ${photoBadge} <span style="font-size:10px; color:#64748b;">🔍</span></td>
                     <td>${flowDisplay}</td>
-                    <td>${s.calculatedPadPsi.toFixed(1)} PSI</td>
+                    <td>${Number(padPsiVal).toFixed(1)} PSI</td>
                     <td><span class="badge ${isPending ? 'badge-fail' : 'badge-pass'}">${isPending ? 'Pending' : 'Synced'}</span></td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        function openSurveyDetail(uuid) {
+        function openSurveyDetailByIndex(idx) {
             const surveys = JSON.parse(localStorage.getItem('local_surveys') || '[]');
             const queue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
-            const item = surveys.find(x => x.client_uuid === uuid);
+            const reversed = surveys.slice().reverse();
+            const item = reversed[idx];
+
             if (!item) return;
 
-            const isPending = queue.some(q => q.client_uuid === item.client_uuid);
-            const dateStr = new Date(item.timestamp).toLocaleString();
+            const isPending = queue.some(q => (q.client_uuid && q.client_uuid === item.client_uuid) || (q.timestamp === item.timestamp && q.pivotId === item.pivotId));
+            const dateStr = item.timestamp ? new Date(item.timestamp).toLocaleString() : 'No Timestamp';
 
-            document.getElementById('modal-pivot-title').innerText = item.pivotId;
+            document.getElementById('modal-pivot-title').innerText = item.pivotId || 'Pivot Test';
 
+            // Safe fallback for reading value
+            const currentReadingVal = item.currentReading !== undefined ? item.currentReading : (item.t2Reading !== undefined ? item.t2Reading : (item.t1Reading || 0));
+
+            // Safe fallback for volume
             const volFormatted = item.totalVolumeGallons ? (
                 item.totalVolumeGallons >= 325851.4 ? 
                 `${(item.totalVolumeGallons / 325851.429).toFixed(2)} Ac-Ft` : 
                 `${Math.round(item.totalVolumeGallons).toLocaleString()} Gal`
             ) : "Initial Baseline (No Volume)";
 
+            // Multi-photo renderer
             const photos = item.photos || (item.photoBase64 ? [item.photoBase64] : []);
             let photoHtml = "";
 
@@ -1134,9 +1148,9 @@
                     <div style="margin-top:10px;">
                         <div style="font-size:11px; color:#94a3b8; margin-bottom:6px; font-weight:700;">ATTACHED SYSTEM PHOTOS (${photos.length}) — TAP TO ZOOM</div>
                         <div style="display:flex; flex-direction:column; gap:10px; align-items:center;">
-                            ${photos.map((p, idx) => `
+                            ${photos.map((p, pIdx) => `
                                 <div style="text-align:center; width:100%;">
-                                    <span style="font-size:9.5px; color:#64748b; font-family:monospace;">Photo ${idx + 1} of ${photos.length} (Tap to enlarge 🔍)</span>
+                                    <span style="font-size:9.5px; color:#64748b; font-family:monospace;">Photo ${pIdx + 1} of ${photos.length} (Tap to enlarge 🔍)</span>
                                     <img src="${p}" onclick="openImageLightbox('${p}')" 
                                          style="max-height:220px; max-width:100%; border-radius:8px; border:1.5px solid #38bdf8; display:block; margin:3px auto 0 auto; cursor:pointer;" />
                                 </div>
@@ -1146,7 +1160,9 @@
                 `;
             }
 
-            const currentReadingVal = item.currentReading !== undefined ? item.currentReading : (item.t2Reading || item.t1Reading || 0);
+            const flowRate = item.measuredFlowGpm !== undefined ? item.measuredFlowGpm : (item.calculated_gpm || 0);
+            const padPsi = item.calculatedPadPsi !== undefined ? item.calculatedPadPsi : (item.rawGaugePsi || 0);
+            const tapPsi = item.rawGaugePsi !== undefined ? item.rawGaugePsi : (item.raw_pressure_psi || 0);
 
             const body = document.getElementById('modal-detail-body');
             body.innerHTML = `
@@ -1154,18 +1170,18 @@
                 <div class="detail-row"><span class="detail-label">Visit Timestamp</span><span class="detail-val" style="font-size:11.5px;">${dateStr}</span></div>
                 <div class="detail-row"><span class="detail-label">Technician</span><span class="detail-val">${item.technician || 'Field Op'}</span></div>
                 <div class="detail-row"><span class="detail-label">Transducer S/N</span><span class="detail-val" style="color:#38bdf8;">${item.transducerSn || 'Unassigned'}</span></div>
-                <div class="detail-row"><span class="detail-label">Dial Reading (Current)</span><span class="detail-val" style="color:#38bdf8;">${currentReadingVal.toLocaleString()}</span></div>
+                <div class="detail-row"><span class="detail-label">Dial Reading</span><span class="detail-val" style="color:#38bdf8;">${Number(currentReadingVal).toLocaleString()}</span></div>
                 <div class="detail-row"><span class="detail-label">Meter Units Scale</span><span class="detail-val" style="font-size:11px;">${item.unitLabel || 'Gallons'}</span></div>
                 <div class="detail-row"><span class="detail-label">Linked Prior Visit</span><span class="detail-val" style="font-size:11px;">${item.priorTimestamp ? new Date(item.priorTimestamp).toLocaleDateString() : 'None (Baseline)'}</span></div>
                 <div class="detail-row"><span class="detail-label">Test Duration</span><span class="detail-val">${item.durationMinutes ? `${(item.durationMinutes/60).toFixed(1)} hrs (${(item.durationMinutes/1440).toFixed(1)} days)` : 'Initial Baseline'}</span></div>
                 <div class="detail-row"><span class="detail-label">Accumulated Volume</span><span class="detail-val">${volFormatted}</span></div>
-                <div class="detail-row"><span class="detail-label">Average Flow Rate</span><span class="detail-val" style="color:#10b981;">${item.measuredFlowGpm > 0 ? `${Math.round(item.measuredFlowGpm).toLocaleString()} GPM` : 'Baseline Reading'}</span></div>
-                <div class="detail-row"><span class="detail-label">Gauge Tap Pressure</span><span class="detail-val">${item.rawGaugePsi.toFixed(1)} PSI</span></div>
-                <div class="detail-row"><span class="detail-label">Pad Datum Pressure</span><span class="detail-val" style="color:#38bdf8;">${item.calculatedPadPsi.toFixed(1)} PSI</span></div>
-                <div class="detail-row"><span class="detail-label">Riser Tap Height</span><span class="detail-val">${item.tapHeightInches}" above slab</span></div>
-                <div class="detail-row"><span class="detail-label">Span Azimuth</span><span class="detail-val">${item.headingDeg}°</span></div>
-                <div class="detail-row"><span class="detail-label">Field GPS Fix</span><span class="detail-val" style="font-size:11px;">${item.latitude ? `${item.latitude.toFixed(5)}, ${item.longitude.toFixed(5)}` : 'No Fix'}</span></div>
-                <div class="detail-row"><span class="detail-label">Record UUID</span><span class="detail-val" style="font-size:10px; color:#64748b;">${item.client_uuid}</span></div>
+                <div class="detail-row"><span class="detail-label">Average Flow Rate</span><span class="detail-val" style="color:#10b981;">${flowRate > 0 ? `${Math.round(flowRate).toLocaleString()} GPM` : 'Baseline Reading'}</span></div>
+                <div class="detail-row"><span class="detail-label">Gauge Tap Pressure</span><span class="detail-val">${Number(tapPsi).toFixed(1)} PSI</span></div>
+                <div class="detail-row"><span class="detail-label">Pad Datum Pressure</span><span class="detail-val" style="color:#38bdf8;">${Number(padPsi).toFixed(1)} PSI</span></div>
+                <div class="detail-row"><span class="detail-label">Riser Tap Height</span><span class="detail-val">${item.tapHeightInches || 78}" above slab</span></div>
+                <div class="detail-row"><span class="detail-label">Span Azimuth</span><span class="detail-val">${item.headingDeg || 0}°</span></div>
+                <div class="detail-row"><span class="detail-label">Field GPS Fix</span><span class="detail-val" style="font-size:11px;">${item.latitude ? `${Number(item.latitude).toFixed(5)}, ${Number(item.longitude).toFixed(5)}` : 'No Fix'}</span></div>
+                <div class="detail-row"><span class="detail-label">Record UUID</span><span class="detail-val" style="font-size:10px; color:#64748b;">${item.client_uuid || 'Legacy Record'}</span></div>
                 ${photoHtml}
                 <button onclick="closeSurveyDetail()" class="btn-secondary" style="margin-top:12px;">Close Details</button>
             `;
