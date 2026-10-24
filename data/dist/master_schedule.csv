@@ -1,2 +1,3 @@
 pivotId,client_uuid,timestamp,technician,transducerSn,tapHeightInches,headingDeg,rawGaugePsi,calculatedPadPsi,measuredFlowGpm,latitude,longitude
 N-6,1792831060867_xs9yd,2026-10-24 08:37:40.867000+00:00,Field Op,B-53754-B,78,0,0,0,514,39.16347288487901,-96.61052798868641
+R-16,1792833599360_sdh0i,2026-10-24 09:19:59.360000+00:00,WK,B53254-B,78,0,0,0,0,39.16341607783228,-96.61057326764312
