@@ -220,12 +220,19 @@
                                 <option value="325851.429">Acre-Feet (Ac-Ft)</option>
                                 <option value="325.851429">0.001 Acre-Feet (Milli Ac-Ft)</option>
                                 <option value="7.48052">Cubic Feet (Cu-Ft)</option>
-                                <option value="custom">⚙️ Custom Gallons Multiplier...</option>
+                                <option value="custom">⚙️ Custom Unit Scale...</option>
                             </select>
                         </div>
-                        <div class="form-col" id="custom-multiplier-wrap" style="display:none; margin-top:6px;">
-                            <label>Custom Gallons per 1 Totalizer Unit</label>
-                            <input type="number" step="any" id="field-custom-multiplier" placeholder="e.g. 100 or 435.6" oninput="runLiveHydraulics()" class="numeric-field" />
+                        <!-- CUSTOM UNIT NAME & MULTIPLIER -->
+                        <div id="custom-multiplier-wrap" style="display:none; flex-direction:column; gap:8px; margin-top:8px; background:#0f172a; padding:10px; border-radius:6px; border:1px solid #334155;">
+                            <div class="form-col">
+                                <label>Custom Unit Name</label>
+                                <input type="text" id="field-custom-unit-name" placeholder="e.g. Acre-Inches, Imperial Gal, Dial × 100" oninput="runLiveHydraulics()" />
+                            </div>
+                            <div class="form-col">
+                                <label>Gallons Equivalent (per 1 meter unit)</label>
+                                <input type="number" step="any" id="field-custom-multiplier" placeholder="e.g. 27154 for Ac-In, or 100" oninput="runLiveHydraulics()" class="numeric-field" />
+                            </div>
                         </div>
                         <div class="form-row" style="margin-top:6px;">
                             <div class="form-col">
@@ -596,12 +603,7 @@
         function onMeterUnitChange() {
             const selVal = document.getElementById('field-meter-units').value;
             const customWrap = document.getElementById('custom-multiplier-wrap');
-
-            if (selVal === 'custom') {
-                customWrap.style.display = 'flex';
-            } else {
-                customWrap.style.display = 'none';
-            }
+            customWrap.style.display = (selVal === 'custom') ? 'flex' : 'none';
             runLiveHydraulics();
         }
 
@@ -627,7 +629,7 @@
                     const canvas = document.createElement('canvas');
                     let width = img.width;
                     let height = img.height;
-                    const maxDim = 1000; // Resize to max 1000px dimension
+                    const maxDim = 1000;
 
                     if (width > height && width > maxDim) {
                         height = Math.round(height * (maxDim / width));
@@ -642,7 +644,6 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    // Compress to lightweight JPEG (typically ~80KB)
                     capturedPhotoBase64 = canvas.toDataURL('image/jpeg', 0.70);
 
                     document.getElementById('photo-preview-img').src = capturedPhotoBase64;
@@ -787,7 +788,14 @@
             const v2 = parseFloat(document.getElementById('field-t2-val').value) || 0;
             const unitMultiplier = getActiveUnitMultiplier();
             const unitSelect = document.getElementById('field-meter-units');
-            const unitText = unitSelect.value === 'custom' ? `Custom (×${unitMultiplier})` : unitSelect.options[unitSelect.selectedIndex].text;
+
+            let unitText = "";
+            if (unitSelect.value === 'custom') {
+                const customName = document.getElementById('field-custom-unit-name').value.trim() || "Custom Unit";
+                unitText = `${customName} (×${unitMultiplier} gal)`;
+            } else {
+                unitText = unitSelect.options[unitSelect.selectedIndex].text;
+            }
 
             const dtMinutes = (t1Iso && t2Iso) ? ((new Date(t2Iso) - new Date(t1Iso)) / (1000 * 60)) : 0;
             const totalGal = (v2 - v1) * unitMultiplier;
@@ -810,7 +818,7 @@
                 totalVolumeGallons: totalGal,
                 durationMinutes: Math.round(dtMinutes),
                 unitLabel: unitText,
-                photoBase64: capturedPhotoBase64, // Attached compressed photo
+                photoBase64: capturedPhotoBase64,
                 latitude: userLocation ? userLocation.lat : null,
                 longitude: userLocation ? userLocation.lon : null
             };
@@ -825,10 +833,8 @@
 
             renderSurveyTable();
             alert(`Survey recorded for ${pId}.`);
-            
-            // Reset photo for next test
+
             clearCapturedPhoto();
-            
             syncOfflineQueueToGitHub();
             switchView('view-records');
         }
@@ -869,52 +875,30 @@
             renderSurveyTable();
         }
 
+        // --------------------------------------------------------------------
+        // Team Cloud Sync: Ingests Full JSON Log with Photos
+        // --------------------------------------------------------------------
         async function fetchCloudSurveyLog() {
             try {
-                const resp = await fetch('data/dist/survey_audit_log.csv?t=' + Date.now());
+                const resp = await fetch('data/dist/survey_audit_log.json?t=' + Date.now());
                 if (!resp.ok) return;
 
-                const text = await resp.text();
-                const lines = text.trim().split('\n');
-                if (lines.length < 2) return;
-
-                const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-                const cloudRecords = [];
-
-                for (let i = 1; i < lines.length; i++) {
-                    const row = lines[i].split(',').map(c => c.trim().replace(/^"|"$/g, ''));
-                    const obj = {};
-                    headers.forEach((h, idx) => obj[h] = row[idx]);
-
-                    cloudRecords.push({
-                        client_uuid: obj.client_uuid || `cloud_${i}`,
-                        timestamp: obj.timestamp,
-                        technician: obj.technician,
-                        pivotId: obj.pivotId,
-                        transducerSn: obj.transducerSn,
-                        tapHeightInches: parseFloat(obj.tapHeightInches) || 0,
-                        headingDeg: parseFloat(obj.headingDeg) || 0,
-                        rawGaugePsi: parseFloat(obj.rawGaugePsi) || 0,
-                        calculatedPadPsi: parseFloat(obj.calculatedPadPsi) || 0,
-                        measuredFlowGpm: parseFloat(obj.measuredFlowGpm) || 0,
-                        durationMinutes: parseFloat(obj.durationMinutes) || 0,
-                        totalVolumeGallons: parseFloat(obj.totalVolumeGallons) || 0,
-                        unitLabel: obj.unitLabel || "Gallons",
-                        latitude: parseFloat(obj.latitude) || null,
-                        longitude: parseFloat(obj.longitude) || null
-                    });
-                }
-
+                const cloudRecords = await resp.json();
                 const localSurveys = JSON.parse(localStorage.getItem('local_surveys') || '[]');
                 const merged = [...localSurveys];
 
                 cloudRecords.forEach(cr => {
-                    const exists = merged.some(m => m.client_uuid === cr.client_uuid || (m.pivotId === cr.pivotId && m.timestamp === cr.timestamp));
-                    if (!exists) merged.push(cr);
+                    const idx = merged.findIndex(m => m.client_uuid === cr.client_uuid);
+                    if (idx === -1) {
+                        merged.push(cr);
+                    } else {
+                        merged[idx] = { ...merged[idx], ...cr };
+                    }
                 });
 
                 localStorage.setItem('local_surveys', JSON.stringify(merged));
                 renderSurveyTable();
+                console.log(`Synchronized ${cloudRecords.length} team surveys (with photos) from Cloud.`);
             } catch (err) {
                 console.warn("Cloud log fetch note:", err.message);
             }
