@@ -2,7 +2,7 @@
 """
 Field Calibration Aggregator
 Reads atomic field survey JSONs and builds canonical master deliverables
-in both CSV and JSON formats, handling mixed timestamp formats flexibly.
+in both CSV and JSON formats, standardizing all timestamps to UTC.
 """
 
 import glob
@@ -38,8 +38,8 @@ def main():
 
     df = pd.DataFrame(records)
 
-    # Use format="mixed" so it cleanly handles both '2026-10-24T08:28' and '2026-10-23T14:35:12.100Z'
-    df["timestamp"] = pd.to_datetime(df["timestamp"], format="mixed", errors="coerce")
+    # Standardize all timestamps to UTC so naive and aware timestamps sort cleanly
+    df["timestamp"] = pd.to_datetime(df["timestamp"], format="mixed", errors="coerce", utc=True)
     df = df.dropna(subset=["timestamp"]).sort_values("timestamp", ascending=True)
 
     # 1. Full Chronological Audit Logs (Both CSV and JSON)
