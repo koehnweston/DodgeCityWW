@@ -48,17 +48,26 @@
 
         /* Map UI */
         #map { width: 100%; height: 100%; z-index: 1; }
-        .proximity-hud {
-            position: absolute; top: 12px; left: 12px; right: 12px; z-index: 999;
-            background: rgba(15, 23, 42, 0.94); border: 1.5px solid #38bdf8;
-            border-radius: 10px; padding: 10px 14px; backdrop-filter: blur(8px);
-            display: flex; align-items: center; justify-content: space-between;
-            box-shadow: 0 4px 18px rgba(0,0,0,0.5); transition: border-color 0.3s;
+
+        /* Dynamic Map Pivot Labels */
+        .pivot-map-label-wrap { background: transparent !important; border: none !important; }
+        .pivot-map-label {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            background: rgba(15, 23, 42, 0.92);
+            border: 1.5px solid #38bdf8;
+            border-radius: 5px;
+            color: #ffffff;
+            font-weight: 800;
+            font-family: 'Inter', sans-serif;
+            pointer-events: none;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            transition: transform 0.2s ease, font-size 0.2s ease, opacity 0.2s ease;
+            transform: translate(-50%, -150%);
         }
-        .hud-left { display: flex; flex-direction: column; }
-        .hud-title { font-size: 9.5px; text-transform: uppercase; color: #94a3b8; font-weight: 800; letter-spacing: 0.5px; }
-        .hud-pivot { font-size: 15px; font-weight: 800; color: #38bdf8; }
-        .hud-dist { font-size: 11.5px; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; }
 
         /* Forms */
         .form-wrap { padding: 16px; max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
@@ -145,6 +154,7 @@
         }
         .detail-label { color: #94a3b8; font-weight: 600; font-size: 12px; }
         .detail-val { color: #f8fafc; font-weight: 700; font-family: 'JetBrains Mono', monospace; font-size: 13px; text-align: right; }
+
         /* Full-Screen Image Lightbox */
         .lightbox-overlay {
             display: none; position: fixed; inset: 0; z-index: 3000;
@@ -185,16 +195,9 @@
         </header>
 
         <div class="content">
-            <!-- TAB 1: PROXIMITY MAP -->
+            <!-- TAB 1: PROXIMITY MAP (Full-Screen View) -->
             <div id="view-map" class="view-panel active">
                 <div id="map"></div>
-                <div class="proximity-hud" id="hud-panel">
-                    <div class="hud-left">
-                        <span class="hud-title">Nearest Center Pad</span>
-                        <span class="hud-pivot" id="hud-nearest-name">Locating...</span>
-                        <span class="hud-dist" id="hud-nearest-dist">-- ft</span>
-                    </div>
-                </div>
             </div>
 
             <!-- TAB 2: FIELD CALIBRATION FORM -->
@@ -489,12 +492,15 @@
         }
 
         // --------------------------------------------------------------------
-        // Map Rendering (Uniform GIS Palette + Inspection Popup)
+        // Map Rendering (Full Map + Responsive Zoom Labels)
         // --------------------------------------------------------------------
         function initMap() {
             map = L.map('map', { zoomControl: false, attributionControl: false }).setView([37.755, -100.02], 13);
             L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 }).addTo(map);
             pivotLayerGroup = L.layerGroup().addTo(map);
+
+            // Dynamically scale/hide labels based on zoom level
+            map.on('zoomend', updateDynamicLabelScales);
         }
 
         function renderPivotMarkers() {
@@ -516,6 +522,7 @@
                     </div>
                 `;
 
+                // 1. Pivot Boundary Footprint
                 if (p.polygon) {
                     const polyLayer = L.geoJSON(p.polygon, {
                         style: { color: polyColor, weight: 2, fillColor: polyColor, fillOpacity: 0.18 }
@@ -524,18 +531,61 @@
                     pivotLayerGroup.addLayer(polyLayer);
                 }
 
+                // 2. Center Pad Pin
                 if (p.lat && p.lon) {
                     const padMarker = L.circleMarker([p.lat, p.lon], {
                         radius: 7, fillColor: "#38bdf8", color: "#ffffff", weight: 2, fillOpacity: 1.0
                     });
                     padMarker.bindPopup(popupHtml);
                     pivotLayerGroup.addLayer(padMarker);
+
+                    // 3. Dynamic Scalable Pivot Name Label
+                    const labelMarker = L.marker([p.lat, p.lon], {
+                        icon: L.divIcon({
+                            className: 'pivot-map-label-wrap',
+                            html: `<div class="pivot-map-label" id="lbl-${p.id.replace(/[^a-zA-Z0-9]/g, '_')}">${p.id}</div>`,
+                            iconSize: null,
+                            iconAnchor: null
+                        })
+                    });
+                    pivotLayerGroup.addLayer(labelMarker);
+                }
+            });
+
+            updateDynamicLabelScales();
+        }
+
+        function updateDynamicLabelScales() {
+            if (!map) return;
+            const zoom = map.getZoom();
+            const labels = document.querySelectorAll('.pivot-map-label');
+
+            labels.forEach(el => {
+                if (zoom < 13) {
+                    // Hide when zoomed out to prevent jumbling/clutter
+                    el.style.display = 'none';
+                } else if (zoom === 13) {
+                    el.style.display = 'inline-flex';
+                    el.style.fontSize = '9.5px';
+                    el.style.padding = '2px 5px';
+                    el.style.transform = 'translate(-50%, -135%) scale(0.85)';
+                } else if (zoom === 14) {
+                    el.style.display = 'inline-flex';
+                    el.style.fontSize = '11px';
+                    el.style.padding = '3px 7px';
+                    el.style.transform = 'translate(-50%, -145%) scale(1.0)';
+                } else {
+                    // Zoom >= 15 (Zoomed close)
+                    el.style.display = 'inline-flex';
+                    el.style.fontSize = '13px';
+                    el.style.padding = '4px 9px';
+                    el.style.transform = 'translate(-50%, -155%) scale(1.15)';
                 }
             });
         }
 
         // --------------------------------------------------------------------
-        // GPS Proximity Engine (Clean HUD Banner)
+        // GPS Proximity Engine
         // --------------------------------------------------------------------
         function startGpsTracking() {
             const statusPill = document.getElementById('gps-status-pill');
@@ -563,7 +613,7 @@
                     } else {
                         userMarker.setLatLng([lat, lon]);
                     }
-                    updateProximityHUD();
+                    updateProximityState();
                 },
                 () => {
                     statusPill.className = "status-pill searching";
@@ -573,7 +623,7 @@
             );
         }
 
-        function updateProximityHUD() {
+        function updateProximityState() {
             if (!userLocation) return;
             let minD = Infinity;
             let closest = null;
@@ -586,22 +636,17 @@
             });
 
             nearestPivot = closest;
-            const hudPivot = document.getElementById('hud-nearest-name');
-            const hudDist = document.getElementById('hud-nearest-dist');
-            const hudPanel = document.getElementById('hud-panel');
+            const autoLockElem = document.getElementById('auto-lock-indicator');
 
-            if (closest) {
-                hudPivot.innerText = closest.id;
-                hudDist.innerText = `${Math.round(minD)} ft from Pad`;
-
-                if (minD <= 300) {
-                    hudPanel.style.borderColor = '#10b981';
-                    document.getElementById('auto-lock-indicator').innerText = "GPS Auto-Locked (<300 ft)";
-                    document.getElementById('auto-lock-indicator').style.color = "#10b981";
-                } else {
-                    hudPanel.style.borderColor = '#38bdf8';
-                    document.getElementById('auto-lock-indicator').innerText = "Manual";
-                    document.getElementById('auto-lock-indicator').style.color = "#94a3b8";
+            if (closest && minD <= 300) {
+                if (autoLockElem) {
+                    autoLockElem.innerText = `Auto-Locked (${closest.id})`;
+                    autoLockElem.style.color = "#10b981";
+                }
+            } else {
+                if (autoLockElem) {
+                    autoLockElem.innerText = "Manual";
+                    autoLockElem.style.color = "#94a3b8";
                 }
             }
         }
@@ -1071,7 +1116,7 @@
         function closeSurveyDetail() {
             document.getElementById('survey-detail-modal').classList.remove('active');
         }
-        
+
         function openImageLightbox(src) {
             document.getElementById('lightbox-enlarged-img').src = src;
             document.getElementById('photo-lightbox-modal').classList.add('active');
@@ -1114,7 +1159,10 @@
 
             if (viewId === 'view-map') {
                 document.getElementById('tab-nav-map').classList.add('active');
-                setTimeout(() => map.invalidateSize(), 200);
+                setTimeout(() => {
+                    map.invalidateSize();
+                    updateDynamicLabelScales();
+                }, 200);
             } else if (viewId === 'view-form') {
                 document.getElementById('tab-nav-form').classList.add('active');
             } else if (viewId === 'view-records') {
