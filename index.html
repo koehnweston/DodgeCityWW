@@ -323,6 +323,8 @@
     </div>
 
     <script>
+        // --- CLOUDFLARE WORKER ENDPOINT ---
+        const CLOUDFLARE_WORKER_URL = "https://dodge-city-ww-sync.koehnweston.workers.dev";
         let activePivots = [];
         let userLocation = null;
         let nearestPivot = null;
@@ -687,11 +689,6 @@
 
         async function syncOfflineQueueToGitHub() {
             let queue = JSON.parse(localStorage.getItem('offline_queue') || '[]');
-            const owner = localStorage.getItem("gh_owner") || "koehnweston";
-            const repo = localStorage.getItem("gh_repo") || "DodgeCityWW";
-            const token = localStorage.getItem("gh_token");
-
-            if (!owner || !repo || !token) return;
             if (queue.length === 0) return;
 
             const pill = document.getElementById("sync-status-pill");
@@ -702,28 +699,20 @@
             const remaining = [];
 
             for (const item of queue) {
-                const safeP = item.pivotId.replace(/[^a-zA-Z0-9-_]/g, '_');
-                const safeT = item.timestamp.replace(/[:.]/g, '-');
-                const filePath = `data/surveys/${safeP}_${safeT}_${item.client_uuid}.json`;
-
-                const content = btoa(unescape(encodeURIComponent(JSON.stringify(item, null, 2))));
-                const url = `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`;
-
                 try {
-                    const resp = await fetch(url, {
-                        method: "PUT",
-                        headers: {
-                            "Authorization": `Bearer ${token}`,
-                            "Accept": "application/vnd.github.v3+json",
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            message: `Telemetry test ${item.pivotId} [ci skip]`,
-                            content: content
-                        })
+                    const resp = await fetch(CLOUDFLARE_WORKER_URL, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(item)
                     });
-                    if (!resp.ok) remaining.push(item);
+
+                    const res = await resp.json();
+                    if (!res.success) {
+                        console.error("Worker sync error:", res.error);
+                        remaining.push(item);
+                    }
                 } catch (e) {
+                    console.error("Network error during sync:", e);
                     remaining.push(item);
                 }
             }
