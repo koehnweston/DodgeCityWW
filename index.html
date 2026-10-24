@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#0f172a" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <title>Dodge City Pivot Calibration</title>
+    <title>Dodge City Field Test - Data Collection</title>
 
     <!-- Leaflet & GIS Engines -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -181,7 +181,7 @@
 <body>
     <div class="app-shell">
         <header class="header">
-            <div class="header-title">🚜 Dodge City WW Calibration</div>
+            <div class="header-title">Dodge City Field Test - Data Collection</div>
             <div class="header-badges">
                 <div id="sync-status-pill" class="status-pill active">
                     <span class="dot"></span>
@@ -200,7 +200,7 @@
                 <div id="map"></div>
             </div>
 
-            <!-- TAB 2: FIELD CALIBRATION FORM -->
+            <!-- TAB 2: FIELD DATA ENTRY FORM -->
             <div id="view-form" class="view-panel">
                 <div class="form-wrap">
                     <div class="card">
@@ -234,7 +234,7 @@
                         </div>
                     </div>
 
-                    <!-- TOTALIZER VISIT CARD (SINGLE READING WITH AUTOMATIC HISTORICAL LINKING) -->
+                    <!-- TOTALIZER VISIT CARD -->
                     <div class="card">
                         <div class="card-header">
                             <span>3. Totalizer Visit Reading</span>
@@ -394,7 +394,7 @@
             </button>
             <button class="tab-btn" id="tab-nav-form" onclick="switchView('view-form')">
                 <span class="tab-icon">📝</span>
-                <span>Calibration</span>
+                <span>Data Entry</span>
             </button>
             <button class="tab-btn" id="tab-nav-records" onclick="switchView('view-records')">
                 <span class="tab-icon">⚙️</span>
@@ -519,7 +519,7 @@
                         </div>
                         <button onclick="selectAndBindPivot('${p.id}')" 
                                 style="margin-top:8px; width:100%; background:#0284c7; color:white; border:none; padding:8px 10px; border-radius:6px; font-weight:700; cursor:pointer;">
-                            📝 Open Calibration Sheet
+                            📝 Open Data Entry Sheet
                         </button>
                     </div>
                 `;
@@ -663,7 +663,6 @@
         // --------------------------------------------------------------------
         function getPriorVisitRecord(pivotId) {
             const surveys = JSON.parse(localStorage.getItem('local_surveys') || '[]');
-            // Filter for the same pivot and isolate the newest prior reading
             const matches = surveys
                 .filter(s => s.pivotId === pivotId && (s.currentReading !== undefined || s.t2Reading !== undefined || s.t1Reading !== undefined))
                 .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -681,7 +680,6 @@
                 }
             }
 
-            // Check and link previous historical visit
             updatePriorVisitUI(pId);
             runLiveHydraulics();
         }
@@ -859,7 +857,6 @@
 
                     flowElem.innerText = `${Math.round(gpm).toLocaleString()} GPM`;
 
-                    // Format Duration
                     const totalHours = dtMinutes / 60;
                     if (totalHours >= 24) {
                         const days = (totalHours / 24).toFixed(1);
@@ -870,7 +867,6 @@
                         durationElem.innerText = `${hrs}h ${mins}m`;
                     }
 
-                    // Format Volume
                     if (totalGal >= 325851.4) {
                         volumeElem.innerText = `${(totalGal / 325851.429).toFixed(2)} Ac-Ft`;
                     } else {
@@ -989,11 +985,9 @@
                 headingDeg: heading,
                 rawGaugePsi: gaugePsi,
                 calculatedPadPsi: parseFloat(padPsiStr) || 0,
-                // Totalizer Reading Data:
                 currentReading: currentVal,
                 unitLabel: unitText,
                 unitMultiplier: unitMultiplier,
-                // Linked Historical Interval Data:
                 priorVisitUuid: prior ? prior.client_uuid : null,
                 priorTimestamp: prior ? prior.timestamp : null,
                 priorReading: priorVal,
@@ -1100,7 +1094,6 @@
                 const isPending = queue.some(q => q.client_uuid === s.client_uuid);
                 const photoCount = (s.photos && s.photos.length) || (s.photoBase64 ? 1 : 0);
                 const photoBadge = photoCount > 0 ? `📷 (${photoCount})` : '';
-
                 const flowDisplay = s.measuredFlowGpm > 0 ? `${Math.round(s.measuredFlowGpm).toLocaleString()} GPM` : 'Baseline';
 
                 const tr = document.createElement('tr');
