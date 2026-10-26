@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
 Center Pivot Shapefile-to-GeoJSON Converter & Pad Localizer
-Author: Water Resources Engineering / QAQC Workflow
-Environment: Python 3.9+, GeoPandas, Shapely
+Includes automated static booster station asset injection.
 """
 
 import argparse
@@ -46,9 +45,36 @@ TRANSDUCER_REGISTRY = {
     "N-5":      {"sn": "B53248-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 900.0, "reg_psi": 15.0, "max_elev_diff": 17.0}
 }
 
+# Static Infrastructure (Booster Stations, Wells, Mainline Gauges)
+STATIC_INFRASTRUCTURE = [
+    {
+        "id": "Booster Station - Suction",
+        "sn": "B53202-B",
+        "status": "Active",
+        "z_rel": 0.0,  # Manual field measurement
+        "design_gpm": 1200.0,
+        "reg_psi": 0.0,
+        "max_elev_diff": 0.0,
+        "lat": 37.568520,
+        "lon": -100.034125,
+        "asset_type": "booster_station"
+    },
+    {
+        "id": "Booster Station - Discharge",
+        "sn": "B-53241-B",
+        "status": "Active",
+        "z_rel": 0.0,  # Manual field measurement
+        "design_gpm": 1200.0,
+        "reg_psi": 0.0,
+        "max_elev_diff": 0.0,
+        "lat": 37.568568,
+        "lon": -100.034080,
+        "asset_type": "booster_station"
+    }
+]
+
 
 def normalize_id(val: str) -> str:
-    """Normalizes pivot identification strings for robust key matching."""
     if not val:
         return ""
     s = str(val).strip().upper()
@@ -59,12 +85,6 @@ def normalize_id(val: str) -> str:
 
 
 def calculate_true_pivot_center_planar(geom_planar) -> Point:
-    """
-    Computes the physical center pad of a pivot.
-    For sector / windshield-wiper sweeps, finds the intersection of the two
-    longest radial boundaries. For full circles, returns the polygon centroid.
-    Must be executed in a planar/metric CRS (e.g. EPSG:3857).
-    """
     if geom_planar.geom_type == 'MultiPolygon':
         geom_planar = max(geom_planar.geoms, key=lambda a: a.area)
 
@@ -77,7 +97,6 @@ def calculate_true_pivot_center_planar(geom_planar) -> Point:
         dist = math.hypot(p2[0] - p1[0], p2[1] - p1[1])
         segments.append((dist, p1, p2))
 
-    # Sort descending by edge length
     segments.sort(key=lambda x: x[0], reverse=True)
     if len(segments) < 3:
         return geom_planar.centroid
@@ -86,13 +105,12 @@ def calculate_true_pivot_center_planar(geom_planar) -> Point:
     second_longest_dist, l2_p1, l2_p2 = segments[1]
     perimeter = geom_planar.length
 
-    # If the two longest edges each make up > 10% of total perimeter, it is a sector
     if longest_dist > perimeter * 0.10 and second_longest_dist > perimeter * 0.10:
         pts1 = [l1_p1, l1_p2]
         pts2 = [l2_p1, l2_p2]
         for pA in pts1:
             for pB in pts2:
-                if math.hypot(pA[0] - pB[0], pA[1] - pB[1]) < 1.0:  # within 1 meter in 3857
+                if math.hypot(pA[0] - pB[0], pA[1] - pB[1]) < 1.0:
                     return Point(pA[0], pA[1])
 
     return geom_planar.centroid
@@ -102,17 +120,13 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
     print(f"Reading input shapefile: {input_shp_path}")
     gdf = gpd.read_file(input_shp_path)
 
-    # Filter only polygon geometries
     gdf = gdf[gdf.geometry.notnull() & gdf.geometry.geom_type.isin(['Polygon', 'MultiPolygon'])].copy()
     if gdf.empty:
         raise ValueError("No valid Polygon or MultiPolygon geometries found in file.")
 
-    # Detect projection; default to EPSG:4326 if missing
     if gdf.crs is None:
-        print("Warning: Input CRS missing. Assuming EPSG:4326.")
         gdf = gdf.set_crs("EPSG:4326")
 
-    # Autodetect Pivot Name Column if not explicitly specified
     if not name_col:
         cols = [c for c in gdf.columns if c.lower() != 'geometry']
         for candidate in ['NAME', 'FIELD_NAME', 'PIVOT_ID', 'ID', 'LABEL', 'PIVOT', 'IDENT']:
@@ -122,26 +136,19 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
                 break
         if not name_col:
             name_col = cols[0]
-    print(f"Using attribute column '{name_col}' for Pivot Names.")
 
-    # Convert to Planar (EPSG:3857) for accurate radial distance math
     gdf_planar = gdf.to_crs(epsg=3857)
-
     features = []
-    matched_count = 0
 
+    # 1. Process Pivot Polygons
     for idx, row in gdf_planar.iterrows():
         raw_name = str(row.get(name_col, f"Pivot_{idx+1}")).strip()
         norm_key = normalize_id(raw_name)
 
-        # Calculate True Center Pad in planar CRS
         center_pad_planar = calculate_true_pivot_center_planar(row.geometry)
-
-        # Reproject Center Point and Boundary back to WGS84 (EPSG:4326)
         pad_wgs = gpd.GeoSeries([center_pad_planar], crs="EPSG:3857").to_crs(epsg=4326).iloc[0]
         poly_wgs = gpd.GeoSeries([row.geometry], crs="EPSG:3857").to_crs(epsg=4326).iloc[0]
 
-        # Merge with Schedule Registry if available
         meta = TRANSDUCER_REGISTRY.get(norm_key, {
             "sn": str(row.get("SN", row.get("TRANSDUCER", "UNASSIGNED"))),
             "status": "Imported",
@@ -151,10 +158,7 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
             "max_elev_diff": 10.0
         })
 
-        if norm_key in TRANSDUCER_REGISTRY:
-            matched_count += 1
-
-        feature = {
+        features.append({
             "type": "Feature",
             "geometry": {
                 "type": "Point",
@@ -169,12 +173,32 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
                 "design_gpm": meta["design_gpm"],
                 "reg_psi": meta["reg_psi"],
                 "max_elev_diff": meta["max_elev_diff"],
-                "pad_lon": round(pad_wgs.x, 7),
-                "pad_lat": round(pad_wgs.y, 7),
+                "asset_type": "pivot",
                 "polygon_geometry": poly_wgs.__geo_interface__
             }
-        }
-        features.append(feature)
+        })
+
+    # 2. Append Static Booster Station Points
+    for asset in STATIC_INFRASTRUCTURE:
+        features.append({
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [round(asset["lon"], 7), round(asset["lat"], 7)]
+            },
+            "properties": {
+                "id": asset["id"],
+                "norm_id": normalize_id(asset["id"]),
+                "sn": asset["sn"],
+                "status": asset["status"],
+                "z_rel": asset["z_rel"],
+                "design_gpm": asset["design_gpm"],
+                "reg_psi": asset["reg_psi"],
+                "max_elev_diff": asset["max_elev_diff"],
+                "asset_type": asset["asset_type"],
+                "polygon_geometry": None
+            }
+        })
 
     geojson_payload = {
         "type": "FeatureCollection",
@@ -185,8 +209,8 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
     with open(output_geojson_path, "w", encoding="utf-8") as f:
         json.dump(geojson_payload, f, indent=2)
 
-    print(f"Successfully processed {len(features)} pivots ({matched_count} matched to registry).")
-    print(f"Output saved to: {output_geojson_path}")
+    print(f"Successfully processed {len(features)} total assets (including {len(STATIC_INFRASTRUCTURE)} booster stations).")
+    print(f"Saved to: {output_geojson_path}")
 
 
 if __name__ == "__main__":
