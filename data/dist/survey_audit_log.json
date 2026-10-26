@@ -331,6 +331,31 @@
     "longitude":-100.0340411187
   },
   {
+    "client_uuid":"1793043351626_tbwom",
+    "timestamp":"2026-10-26T19:02:00.000Z",
+    "technician":"Field Op",
+    "pivotId":"N-9",
+    "transducerSn":"B53223-B",
+    "tapHeightInches":80.5,
+    "headingDeg":335,
+    "rawGaugePsi":0,
+    "calculatedPadPsi":0.0,
+    "currentReading":0,
+    "unitLabel":"Gallons (Gal)",
+    "unitMultiplier":1.0,
+    "priorVisitUuid":null,
+    "priorTimestamp":null,
+    "priorReading":null,
+    "durationMinutes":0,
+    "totalVolumeGallons":0,
+    "measuredFlowGpm":0,
+    "photos":[
+
+    ],
+    "latitude":37.6101610504,
+    "longitude":-100.0334544101
+  },
+  {
     "client_uuid":"1793043910569_a3ahs",
     "timestamp":"2026-10-26T19:02:00.000Z",
     "technician":"Field Op",
@@ -481,15 +506,15 @@
     "longitude":-100.0383704987
   },
   {
-    "client_uuid":"1793043351626_tbwom",
-    "timestamp":"2026-10-26T19:02:00.000Z",
+    "client_uuid":"1793047426214_jymjp",
+    "timestamp":"2026-10-26T20:40:00.000Z",
     "technician":"Field Op",
-    "pivotId":"N-9",
-    "transducerSn":"B53223-B",
-    "tapHeightInches":80.5,
-    "headingDeg":335,
-    "rawGaugePsi":0,
-    "calculatedPadPsi":0.0,
+    "pivotId":"N-4",
+    "transducerSn":"B53755-B",
+    "tapHeightInches":69.0,
+    "headingDeg":31,
+    "rawGaugePsi":35,
+    "calculatedPadPsi":37.5,
     "currentReading":0,
     "unitLabel":"Gallons (Gal)",
     "unitMultiplier":1.0,
@@ -502,7 +527,7 @@
     "photos":[
 
     ],
-    "latitude":37.6101610504,
-    "longitude":-100.0334544101
+    "latitude":37.5794776063,
+    "longitude":-100.0201403257
   }
 ]
