@@ -529,5 +529,30 @@
     ],
     "latitude":37.5794776063,
     "longitude":-100.0201403257
+  },
+  {
+    "client_uuid":"1793050300893_olrj2",
+    "timestamp":"2026-10-26T21:31:00.000Z",
+    "technician":"Field Op",
+    "pivotId":"R-5 West",
+    "transducerSn":"B53255-B",
+    "tapHeightInches":81.0,
+    "headingDeg":323,
+    "rawGaugePsi":0,
+    "calculatedPadPsi":0.0,
+    "currentReading":0,
+    "unitLabel":"Gallons (Gal)",
+    "unitMultiplier":1.0,
+    "priorVisitUuid":null,
+    "priorTimestamp":null,
+    "priorReading":null,
+    "durationMinutes":0,
+    "totalVolumeGallons":0,
+    "measuredFlowGpm":0,
+    "photos":[
+
+    ],
+    "latitude":37.5942496015,
+    "longitude":-100.0292017598
   }
 ]
