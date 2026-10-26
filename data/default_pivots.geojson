@@ -19,8 +19,7 @@
         "design_gpm": 850.0,
         "reg_psi": 15.0,
         "max_elev_diff": 15.0,
-        "pad_lon": -100.0246125,
-        "pad_lat": 37.616729,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -548,8 +547,7 @@
         "design_gpm": 900.0,
         "reg_psi": 15.0,
         "max_elev_diff": 20.0,
-        "pad_lon": -100.0215487,
-        "pad_lat": 37.6089258,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -1145,8 +1143,7 @@
         "design_gpm": 850.0,
         "reg_psi": 15.0,
         "max_elev_diff": 16.0,
-        "pad_lon": -100.0383142,
-        "pad_lat": 37.6160218,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -1742,8 +1739,7 @@
         "design_gpm": 800.0,
         "reg_psi": 15.0,
         "max_elev_diff": 8.0,
-        "pad_lon": -100.0383732,
-        "pad_lat": 37.608867,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -2335,8 +2331,7 @@
         "design_gpm": 825.0,
         "reg_psi": 15.0,
         "max_elev_diff": 6.0,
-        "pad_lon": -100.0384581,
-        "pad_lat": 37.6015121,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -2936,8 +2931,7 @@
         "design_gpm": 900.0,
         "reg_psi": 15.0,
         "max_elev_diff": 17.0,
-        "pad_lon": -100.0567994,
-        "pad_lat": 37.6015938,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -3533,8 +3527,7 @@
         "design_gpm": 850.0,
         "reg_psi": 15.0,
         "max_elev_diff": 12.0,
-        "pad_lon": -100.047512,
-        "pad_lat": 37.6015362,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -4130,8 +4123,7 @@
         "design_gpm": 800.0,
         "reg_psi": 15.0,
         "max_elev_diff": 9.0,
-        "pad_lon": -100.0244538,
-        "pad_lat": 37.6012496,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -4727,8 +4719,7 @@
         "design_gpm": 850.0,
         "reg_psi": 15.0,
         "max_elev_diff": 14.0,
-        "pad_lon": -100.0314447,
-        "pad_lat": 37.6101368,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -5064,8 +5055,7 @@
         "design_gpm": 800.0,
         "reg_psi": 15.0,
         "max_elev_diff": 10.0,
-        "pad_lon": -100.019993,
-        "pad_lat": 37.5932583,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -5377,8 +5367,7 @@
         "design_gpm": 900.0,
         "reg_psi": 15.0,
         "max_elev_diff": 14.0,
-        "pad_lon": -100.0201264,
-        "pad_lat": 37.5794852,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -5974,8 +5963,7 @@
         "design_gpm": 850.0,
         "reg_psi": 15.0,
         "max_elev_diff": 10.0,
-        "pad_lon": -100.029289,
-        "pad_lat": 37.5721235,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -6571,8 +6559,7 @@
         "design_gpm": 900.0,
         "reg_psi": 15.0,
         "max_elev_diff": 18.0,
-        "pad_lon": -100.0205417,
-        "pad_lat": 37.5713286,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -7120,8 +7107,7 @@
         "design_gpm": 900.0,
         "reg_psi": 15.0,
         "max_elev_diff": 13.0,
-        "pad_lon": -100.0202349,
-        "pad_lat": 37.5647238,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -7717,8 +7703,7 @@
         "design_gpm": 800.0,
         "reg_psi": 15.0,
         "max_elev_diff": 7.0,
-        "pad_lon": -100.0293621,
-        "pad_lat": 37.5648733,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -8314,8 +8299,7 @@
         "design_gpm": 800.0,
         "reg_psi": 15.0,
         "max_elev_diff": 9.0,
-        "pad_lon": -100.0385792,
-        "pad_lat": 37.5650567,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -8907,8 +8891,7 @@
         "design_gpm": 800.0,
         "reg_psi": 15.0,
         "max_elev_diff": 10.0,
-        "pad_lon": -100.0478271,
-        "pad_lat": 37.5652081,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -9504,8 +9487,7 @@
         "design_gpm": 775.0,
         "reg_psi": 15.0,
         "max_elev_diff": 9.0,
-        "pad_lon": -100.0478787,
-        "pad_lat": 37.5578516,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -10101,8 +10083,7 @@
         "design_gpm": 775.0,
         "reg_psi": 15.0,
         "max_elev_diff": 11.0,
-        "pad_lon": -100.0386017,
-        "pad_lat": 37.5577223,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -10694,8 +10675,7 @@
         "design_gpm": 800.0,
         "reg_psi": 15.0,
         "max_elev_diff": 7.0,
-        "pad_lon": -100.0387727,
-        "pad_lat": 37.5505778,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -11235,8 +11215,7 @@
         "design_gpm": 800.0,
         "reg_psi": 15.0,
         "max_elev_diff": 8.0,
-        "pad_lon": -100.0385647,
-        "pad_lat": 37.5722586,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -11616,8 +11595,7 @@
         "design_gpm": 800.0,
         "reg_psi": 15.0,
         "max_elev_diff": 7.0,
-        "pad_lon": -100.052313,
-        "pad_lat": 37.5724128,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -12213,8 +12191,7 @@
         "design_gpm": 800.0,
         "reg_psi": 15.0,
         "max_elev_diff": 5.0,
-        "pad_lon": -100.0433332,
-        "pad_lat": 37.5722862,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -12806,8 +12783,7 @@
         "design_gpm": 800.0,
         "reg_psi": 15.0,
         "max_elev_diff": 6.0,
-        "pad_lon": -100.0462232,
-        "pad_lat": 37.5784045,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -13259,8 +13235,7 @@
         "design_gpm": 800.0,
         "reg_psi": 15.0,
         "max_elev_diff": 8.0,
-        "pad_lon": -100.0359719,
-        "pad_lat": 37.5796504,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -13584,8 +13559,7 @@
         "design_gpm": 800.0,
         "reg_psi": 15.0,
         "max_elev_diff": 12.0,
-        "pad_lon": -100.031108,
-        "pad_lat": 37.5942663,
+        "asset_type": "pivot",
         "polygon_geometry": {
           "type": "Polygon",
           "coordinates": [
@@ -13885,6 +13859,50 @@
             ]
           ]
         }
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.034125,
+          37.56852
+        ]
+      },
+      "properties": {
+        "id": "Booster Station - Suction",
+        "norm_id": "BOOSTER STATION-SUCTION",
+        "sn": "B53202-B",
+        "status": "Active",
+        "z_rel": 0.0,
+        "design_gpm": 1200.0,
+        "reg_psi": 0.0,
+        "max_elev_diff": 0.0,
+        "asset_type": "booster_station",
+        "polygon_geometry": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -100.03408,
+          37.568568
+        ]
+      },
+      "properties": {
+        "id": "Booster Station - Discharge",
+        "norm_id": "BOOSTER STATION-DISCHARGE",
+        "sn": "B-53241-B",
+        "status": "Active",
+        "z_rel": 0.0,
+        "design_gpm": 1200.0,
+        "reg_psi": 0.0,
+        "max_elev_diff": 0.0,
+        "asset_type": "booster_station",
+        "polygon_geometry": null
       }
     }
   ]
