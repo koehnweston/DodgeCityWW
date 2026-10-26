@@ -356,31 +356,6 @@
     "longitude":-100.0383293442
   },
   {
-    "client_uuid":"1793043351626_tbwom",
-    "timestamp":"2026-10-26T19:02:00.000Z",
-    "technician":"Field Op",
-    "pivotId":"N-9",
-    "transducerSn":"B53223-B",
-    "tapHeightInches":80.5,
-    "headingDeg":335,
-    "rawGaugePsi":0,
-    "calculatedPadPsi":0.0,
-    "currentReading":0,
-    "unitLabel":"Gallons (Gal)",
-    "unitMultiplier":1.0,
-    "priorVisitUuid":null,
-    "priorTimestamp":null,
-    "priorReading":null,
-    "durationMinutes":0,
-    "totalVolumeGallons":0,
-    "measuredFlowGpm":0,
-    "photos":[
-
-    ],
-    "latitude":37.6101610504,
-    "longitude":-100.0334544101
-  },
-  {
     "client_uuid":"1793042616715_hsy1h",
     "timestamp":"2026-10-26T19:02:00.000Z",
     "technician":"Field Op",
@@ -404,6 +379,31 @@
     ],
     "latitude":37.6015684273,
     "longitude":-100.0567706659
+  },
+  {
+    "client_uuid":"1793044553310_ltyoy",
+    "timestamp":"2026-10-26T19:02:00.000Z",
+    "technician":"Field Op",
+    "pivotId":"N-6",
+    "transducerSn":"B-53754-B",
+    "tapHeightInches":76.0,
+    "headingDeg":353,
+    "rawGaugePsi":0,
+    "calculatedPadPsi":0.0,
+    "currentReading":0,
+    "unitLabel":"Gallons (Gal)",
+    "unitMultiplier":1.0,
+    "priorVisitUuid":null,
+    "priorTimestamp":null,
+    "priorReading":null,
+    "durationMinutes":0,
+    "totalVolumeGallons":0,
+    "measuredFlowGpm":0,
+    "photos":[
+
+    ],
+    "latitude":37.6089348409,
+    "longitude":-100.0215474347
   },
   {
     "client_uuid":"1793041586330_22kcb",
@@ -454,5 +454,30 @@
     ],
     "latitude":37.6088749655,
     "longitude":-100.0383704987
+  },
+  {
+    "client_uuid":"1793043351626_tbwom",
+    "timestamp":"2026-10-26T19:02:00.000Z",
+    "technician":"Field Op",
+    "pivotId":"N-9",
+    "transducerSn":"B53223-B",
+    "tapHeightInches":80.5,
+    "headingDeg":335,
+    "rawGaugePsi":0,
+    "calculatedPadPsi":0.0,
+    "currentReading":0,
+    "unitLabel":"Gallons (Gal)",
+    "unitMultiplier":1.0,
+    "priorVisitUuid":null,
+    "priorTimestamp":null,
+    "priorReading":null,
+    "durationMinutes":0,
+    "totalVolumeGallons":0,
+    "measuredFlowGpm":0,
+    "photos":[
+
+    ],
+    "latitude":37.6101610504,
+    "longitude":-100.0334544101
   }
 ]
