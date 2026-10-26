@@ -514,8 +514,55 @@
 
         function renderPivotMarkers() {
             pivotLayerGroup.clearLayers();
+            let boosterStationRendered = false;
 
             activePivots.forEach(p => {
+                // 1. COMBINE BOOSTER STATION INTO A SINGLE CLEAN PIN & LABEL
+                if (p.id.includes("Booster Station")) {
+                    if (boosterStationRendered) return; // Prevent duplicate pin
+                    boosterStationRendered = true;
+
+                    const bsLat = 37.568544;
+                    const bsLon = -100.034103;
+
+                    const popupHtml = `
+                        <div style="font-size:13px; color:#f8fafc; font-family:'Inter',sans-serif; min-width:210px;">
+                            <b style="color:#f59e0b; font-size:15px;">⚡ Booster Station</b><br>
+                            <span style="color:#94a3b8; font-size:11px;">Select monitoring point to log:</span>
+                            <div style="display:flex; flex-direction:column; gap:7px; margin-top:9px;">
+                                <button onclick="selectAndBindPivot('Booster Station - Suction')" 
+                                        style="background:#0284c7; color:white; border:none; padding:8px 10px; border-radius:6px; font-weight:700; cursor:pointer; text-align:left;">
+                                    📥 Suction (B53202-B)
+                                </button>
+                                <button onclick="selectAndBindPivot('Booster Station - Discharge')" 
+                                        style="background:#0284c7; color:white; border:none; padding:8px 10px; border-radius:6px; font-weight:700; cursor:pointer; text-align:left;">
+                                    📤 Discharge (B-53241-B)
+                                </button>
+                            </div>
+                        </div>
+                    `;
+
+                    // Single Amber Center Pin
+                    const padMarker = L.circleMarker([bsLat, bsLon], {
+                        radius: 8, fillColor: "#f59e0b", color: "#ffffff", weight: 2, fillOpacity: 1.0
+                    });
+                    padMarker.bindPopup(popupHtml);
+                    pivotLayerGroup.addLayer(padMarker);
+
+                    // Single Crisp Label: "⚡ BS"
+                    const labelMarker = L.marker([bsLat, bsLon], {
+                        icon: L.divIcon({
+                            className: 'pivot-map-label-wrap',
+                            html: `<div class="pivot-map-label" style="border-color:#f59e0b; color:#fbbf24;" id="lbl-BS">⚡ BS</div>`,
+                            iconSize: null,
+                            iconAnchor: null
+                        })
+                    });
+                    pivotLayerGroup.addLayer(labelMarker);
+                    return;
+                }
+
+                // 2. STANDARD PIVOT RENDERING
                 const polyColor = "#38bdf8";
 
                 const popupHtml = `
@@ -531,7 +578,7 @@
                     </div>
                 `;
 
-                // 1. Pivot Boundary Footprint
+                // Pivot Boundary Footprint
                 if (p.polygon) {
                     const polyLayer = L.geoJSON(p.polygon, {
                         style: { color: polyColor, weight: 2, fillColor: polyColor, fillOpacity: 0.18 }
@@ -540,7 +587,7 @@
                     pivotLayerGroup.addLayer(polyLayer);
                 }
 
-                // 2. Center Pad Pin
+                // Center Pad Pin
                 if (p.lat && p.lon) {
                     const padMarker = L.circleMarker([p.lat, p.lon], {
                         radius: 7, fillColor: "#38bdf8", color: "#ffffff", weight: 2, fillOpacity: 1.0
@@ -548,7 +595,7 @@
                     padMarker.bindPopup(popupHtml);
                     pivotLayerGroup.addLayer(padMarker);
 
-                    // 3. Dynamic Scalable Pivot Name Label
+                    // Scalable Pivot Label
                     const labelMarker = L.marker([p.lat, p.lon], {
                         icon: L.divIcon({
                             className: 'pivot-map-label-wrap',
