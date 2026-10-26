@@ -45,30 +45,29 @@ TRANSDUCER_REGISTRY = {
     "N-5":      {"sn": "B53248-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 900.0, "reg_psi": 15.0, "max_elev_diff": 17.0}
 }
 
-# Static Infrastructure (Booster Stations, Wells, Mainline Gauges)
 STATIC_INFRASTRUCTURE = [
     {
         "id": "Booster Station - Suction",
         "sn": "B53202-B",
         "status": "Active",
-        "z_rel": 0.0,  # Manual field measurement
+        "z_rel": 0.0,
         "design_gpm": 1200.0,
         "reg_psi": 0.0,
         "max_elev_diff": 0.0,
-        "lat": 37.568520,
-        "lon": -100.034125,
+        "lat": 37.568544,
+        "lon": -100.034103,
         "asset_type": "booster_station"
     },
     {
         "id": "Booster Station - Discharge",
         "sn": "B-53241-B",
         "status": "Active",
-        "z_rel": 0.0,  # Manual field measurement
+        "z_rel": 0.0,
         "design_gpm": 1200.0,
         "reg_psi": 0.0,
         "max_elev_diff": 0.0,
-        "lat": 37.568568,
-        "lon": -100.034080,
+        "lat": 37.568544,
+        "lon": -100.034103,
         "asset_type": "booster_station"
     }
 ]
