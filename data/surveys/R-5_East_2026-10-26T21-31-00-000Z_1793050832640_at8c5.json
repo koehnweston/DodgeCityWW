@@ -1,0 +1,23 @@
+{
+  "client_uuid": "1793050832640_at8c5",
+  "timestamp": "2026-10-26T21:31:00.000Z",
+  "technician": "Field Op",
+  "pivotId": "R-5 East",
+  "transducerSn": "B53250-B",
+  "tapHeightInches": 39,
+  "headingDeg": 359,
+  "rawGaugePsi": 0,
+  "calculatedPadPsi": 0,
+  "currentReading": 0,
+  "unitLabel": "Gallons (Gal)",
+  "unitMultiplier": 1,
+  "priorVisitUuid": null,
+  "priorTimestamp": null,
+  "priorReading": null,
+  "durationMinutes": 0,
+  "totalVolumeGallons": 0,
+  "measuredFlowGpm": 0,
+  "photos": [],
+  "latitude": 37.5939568366189,
+  "longitude": -100.02005977287173
+}
