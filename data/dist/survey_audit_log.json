@@ -204,5 +204,30 @@
     ],
     "latitude":37.5649064137,
     "longitude":-100.0293576516
+  },
+  {
+    "client_uuid":"1793037360591_5yrth",
+    "timestamp":"2026-10-26T17:54:00.000Z",
+    "technician":"Field Op",
+    "pivotId":"Newell-1",
+    "transducerSn":"B53222-B",
+    "tapHeightInches":78.0,
+    "headingDeg":0,
+    "rawGaugePsi":0,
+    "calculatedPadPsi":0.0,
+    "currentReading":0,
+    "unitLabel":"Gallons (Gal)",
+    "unitMultiplier":1.0,
+    "priorVisitUuid":null,
+    "priorTimestamp":null,
+    "priorReading":null,
+    "durationMinutes":0,
+    "totalVolumeGallons":0,
+    "measuredFlowGpm":0,
+    "photos":[
+
+    ],
+    "latitude":37.5758040841,
+    "longitude":-100.0293101793
   }
 ]
