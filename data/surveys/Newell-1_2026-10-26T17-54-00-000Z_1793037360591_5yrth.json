@@ -1,0 +1,23 @@
+{
+  "client_uuid": "1793037360591_5yrth",
+  "timestamp": "2026-10-26T17:54:00.000Z",
+  "technician": "Field Op",
+  "pivotId": "Newell-1",
+  "transducerSn": "B53222-B",
+  "tapHeightInches": 78,
+  "headingDeg": 0,
+  "rawGaugePsi": 0,
+  "calculatedPadPsi": 0,
+  "currentReading": 0,
+  "unitLabel": "Gallons (Gal)",
+  "unitMultiplier": 1,
+  "priorVisitUuid": null,
+  "priorTimestamp": null,
+  "priorReading": null,
+  "durationMinutes": 0,
+  "totalVolumeGallons": 0,
+  "measuredFlowGpm": 0,
+  "photos": [],
+  "latitude": 37.575804084070114,
+  "longitude": -100.02931017934792
+}
