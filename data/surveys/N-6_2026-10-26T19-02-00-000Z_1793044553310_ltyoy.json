@@ -1,0 +1,23 @@
+{
+  "client_uuid": "1793044553310_ltyoy",
+  "timestamp": "2026-10-26T19:02:00.000Z",
+  "technician": "Field Op",
+  "pivotId": "N-6",
+  "transducerSn": "B-53754-B",
+  "tapHeightInches": 76,
+  "headingDeg": 353,
+  "rawGaugePsi": 0,
+  "calculatedPadPsi": 0,
+  "currentReading": 0,
+  "unitLabel": "Gallons (Gal)",
+  "unitMultiplier": 1,
+  "priorVisitUuid": null,
+  "priorTimestamp": null,
+  "priorReading": null,
+  "durationMinutes": 0,
+  "totalVolumeGallons": 0,
+  "measuredFlowGpm": 0,
+  "photos": [],
+  "latitude": 37.608934840887706,
+  "longitude": -100.02154743469146
+}
