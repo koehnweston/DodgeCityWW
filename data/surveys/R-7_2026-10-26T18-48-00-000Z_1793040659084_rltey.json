@@ -1,0 +1,23 @@
+{
+  "client_uuid": "1793040659084_rltey",
+  "timestamp": "2026-10-26T18:48:00.000Z",
+  "technician": "Field Op",
+  "pivotId": "R-7",
+  "transducerSn": "B53252-B",
+  "tapHeightInches": 62,
+  "headingDeg": 20,
+  "rawGaugePsi": 0,
+  "calculatedPadPsi": 0,
+  "currentReading": 0,
+  "unitLabel": "Gallons (Gal)",
+  "unitMultiplier": 1,
+  "priorVisitUuid": null,
+  "priorTimestamp": null,
+  "priorReading": null,
+  "durationMinutes": 0,
+  "totalVolumeGallons": 0,
+  "measuredFlowGpm": 0,
+  "photos": [],
+  "latitude": 37.57962160253127,
+  "longitude": -100.03404111871966
+}
