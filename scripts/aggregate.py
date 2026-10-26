@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Field Calibration Aggregator
-Reads atomic field survey JSONs and builds canonical master deliverables
-in both CSV and JSON formats, standardizing all timestamps to UTC.
+Reads atomic field survey JSONs and builds canonical master deliverables.
+Initializes clean templates if the survey folder is reset.
 """
 
 import glob
@@ -20,8 +20,20 @@ def main():
     json_files = glob.glob(os.path.join(survey_dir, "*.json"))
     print(f"Found {len(json_files)} survey records in {survey_dir}...")
 
+    # If all test files were wiped, create clean, empty baseline files
     if not json_files:
-        print("No survey records present to compile.")
+        print("Survey folder is reset. Creating clean baseline templates...")
+        empty_cols = ["client_uuid", "timestamp", "technician", "pivotId", "transducerSn", "currentReading", "measuredFlowGpm", "calculatedPadPsi"]
+        empty_df = pd.DataFrame(columns=empty_cols)
+        
+        empty_df.to_csv(os.path.join(dist_dir, "survey_audit_log.csv"), index=False)
+        with open(os.path.join(dist_dir, "survey_audit_log.json"), "w") as f:
+            f.write("[]")
+            
+        empty_df.to_csv(os.path.join(dist_dir, "master_schedule.csv"), index=False)
+        with open(os.path.join(dist_dir, "master_schedule.json"), "w") as f:
+            f.write("[]")
+            
         sys.exit(0)
 
     records = []
@@ -38,11 +50,11 @@ def main():
 
     df = pd.DataFrame(records)
 
-    # Standardize all timestamps to UTC so naive and aware timestamps sort cleanly
+    # Standardize all timestamps to UTC
     df["timestamp"] = pd.to_datetime(df["timestamp"], format="mixed", errors="coerce", utc=True)
     df = df.dropna(subset=["timestamp"]).sort_values("timestamp", ascending=True)
 
-    # 1. Full Chronological Audit Logs (Both CSV and JSON)
+    # 1. Full Chronological Audit Logs
     log_csv = os.path.join(dist_dir, "survey_audit_log.csv")
     log_json = os.path.join(dist_dir, "survey_audit_log.json")
     df.to_csv(log_csv, index=False)
