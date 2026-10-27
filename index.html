@@ -113,16 +113,16 @@
             font-size: 12.5px; padding: 9px; border-radius: 6px; cursor: pointer; text-align: center;
         }
 
-        /* Bottom Nav */
+        /* 4-Tab Bottom Nav Bar */
         .tab-bar {
             background: #1e293b; border-top: 1px solid #334155; height: 56px;
             display: flex; align-items: center; justify-content: space-around;
             flex-shrink: 0; z-index: 1000;
         }
         .tab-btn {
-            background: transparent; border: none; color: #94a3b8; font-size: 10.5px;
+            background: transparent; border: none; color: #94a3b8; font-size: 10px;
             font-weight: 700; display: flex; flex-direction: column; align-items: center;
-            gap: 3px; cursor: pointer; width: 33.3%; height: 100%; justify-content: center;
+            gap: 3px; cursor: pointer; width: 25%; height: 100%; justify-content: center;
         }
         .tab-btn.active { color: #38bdf8; }
         .tab-icon { font-size: 17px; }
@@ -195,15 +195,15 @@
         </header>
 
         <div class="content">
-            <!-- TAB 1: PROXIMITY MAP (Full-Screen View) -->
+            <!-- TAB 1: PROXIMITY MAP -->
             <div id="view-map" class="view-panel active">
                 <div id="map"></div>
             </div>
 
-            <!-- TAB 2: FIELD DATA ENTRY FORM -->
+            <!-- TAB 2: FIELD DATA ENTRY FORM (AUTO-TIMESTAMPED) -->
             <div id="view-form" class="view-panel">
                 <div class="form-wrap">
-                    <!-- CARD 1: PIVOT BINDING & 2-FIELD S/N ARCHITECTURE -->
+                    <!-- CARD 1: PIVOT & SERIAL NUMBERS -->
                     <div class="card">
                         <div class="card-header">
                             <span>1. Target Pivot Pad Binding</span>
@@ -239,25 +239,20 @@
                         </div>
                     </div>
 
-                    <!-- TOTALIZER VISIT CARD -->
+                    <!-- TOTALIZER VISIT CARD (AUTO-TIMESTAMP ON SAVE) -->
                     <div class="card">
                         <div class="card-header">
                             <span>3. Totalizer Visit Reading</span>
-                            <span id="prior-reading-badge" style="color:#38bdf8; font-weight:700;">Checking History...</span>
+                            <span id="prior-reading-badge" style="color:#10b981; font-weight:700;">Checking History...</span>
                         </div>
 
-                        <!-- Prior Visit History Banner -->
+                        <!-- Prior Baseline Banner -->
                         <div id="prior-visit-banner" style="background:#0f172a; border:1px solid #334155; border-radius:6px; padding:10px; font-size:12px; display:none;">
-                            <div style="color:#94a3b8; font-size:10px; font-weight:700; text-transform:uppercase;">Linked Prior Visit</div>
+                            <div style="color:#94a3b8; font-size:10px; font-weight:700; text-transform:uppercase;">Historical Starting Baseline</div>
                             <div id="prior-visit-text" style="color:#38bdf8; font-weight:700; margin-top:3px; font-family:'JetBrains Mono', monospace;">--</div>
                         </div>
 
-                        <div class="form-col" style="margin-top:2px;">
-                            <label>Visit Date &amp; Time (Current Reading)</label>
-                            <input type="datetime-local" id="field-current-datetime" onchange="runLiveHydraulics()" />
-                        </div>
-
-                        <div class="form-row">
+                        <div class="form-row" style="margin-top:2px;">
                             <div class="form-col" style="flex:1.2;">
                                 <label>Current Totalizer Dial Value</label>
                                 <input type="number" step="any" id="field-current-val" placeholder="Dial Reading" oninput="runLiveHydraulics()" class="numeric-field" />
@@ -285,6 +280,10 @@
                                 <label>Gallons Equivalent (per 1 meter unit)</label>
                                 <input type="number" step="any" id="field-custom-multiplier" placeholder="e.g. 27154 for Ac-In, or 100" oninput="runLiveHydraulics()" class="numeric-field" />
                             </div>
+                        </div>
+
+                        <div style="font-size:11px; color:#64748b; margin-top:2px; font-style:italic;">
+                            ⏱️ Entry is automatically timestamped at the exact second you tap Save &amp; Sync.
                         </div>
                     </div>
 
@@ -314,9 +313,7 @@
                             <input type="file" id="field-photo-input" accept="image/*" capture="environment" multiple onchange="handlePhotoCapture(event)" style="font-size:11px; padding:6px; flex:1;" />
                             <button type="button" onclick="clearAllPhotos()" class="btn-secondary" style="padding:6px 12px; font-size:11px;">Clear All</button>
                         </div>
-                        <div id="photo-gallery-grid" style="display:none; flex-wrap:wrap; gap:8px; margin-top:10px;">
-                            <!-- Thumbnails dynamically rendered here -->
-                        </div>
+                        <div id="photo-gallery-grid" style="display:none; flex-wrap:wrap; gap:8px; margin-top:10px;"></div>
                     </div>
 
                     <div class="card">
@@ -345,7 +342,39 @@
                 </div>
             </div>
 
-            <!-- TAB 3: DATA LOG & SYNC -->
+            <!-- TAB 3: TABULAR BASELINE SCHEDULE VIEW -->
+            <div id="view-baseline" class="view-panel">
+                <div class="form-wrap" style="max-width:800px;">
+                    <div class="card">
+                        <div class="card-header">
+                            <span>Master Site Calibration Baseline</span>
+                            <span style="color:#10b981; font-weight:700;">Verified Ground-Truth</span>
+                        </div>
+                        <p style="font-size:11.5px; color:#94a3b8; margin: 2px 0 8px 0;">
+                            Authoritative inventory of preloaded riser heights, dial baselines, and Unit A/B schedules.
+                        </p>
+                        <input type="text" id="baseline-filter-input" placeholder="🔍 Search by Pivot Name, S/N, or Unit..." oninput="filterBaselineTable()" style="margin-bottom:10px;" />
+                        <div style="overflow-x:auto;">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Site</th>
+                                        <th>True S/N</th>
+                                        <th>Base Dial</th>
+                                        <th>Scale</th>
+                                        <th>Tap Ht</th>
+                                        <th>Initial Operating Note</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="baseline-table-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 4: DATA LOG & SYNC -->
             <div id="view-records" class="view-panel">
                 <div class="form-wrap">
                     <div class="card">
@@ -393,18 +422,23 @@
             </div>
         </div>
 
+        <!-- 4-TAB BOTTOM NAVIGATION -->
         <nav class="tab-bar">
             <button class="tab-btn active" id="tab-nav-map" onclick="switchView('view-map')">
                 <span class="tab-icon">🗺️</span>
-                <span>Proximity Map</span>
+                <span>Map</span>
             </button>
             <button class="tab-btn" id="tab-nav-form" onclick="switchView('view-form')">
                 <span class="tab-icon">📝</span>
                 <span>Data Entry</span>
             </button>
+            <button class="tab-btn" id="tab-nav-baseline" onclick="switchView('view-baseline')">
+                <span class="tab-icon">📋</span>
+                <span>Baseline</span>
+            </button>
             <button class="tab-btn" id="tab-nav-records" onclick="switchView('view-records')">
-                <span class="tab-icon">⚙️</span>
-                <span>Team Data</span>
+                <span class="tab-icon">📊</span>
+                <span>Team Logs</span>
             </button>
         </nav>
     </div>
@@ -419,9 +453,7 @@
                 </div>
                 <button onclick="closeSurveyDetail()" style="background:transparent; border:none; color:#94a3b8; font-size:22px; cursor:pointer;">✕</button>
             </div>
-            <div class="modal-body" id="modal-detail-body">
-                <!-- Dynamically loaded on click -->
-            </div>
+            <div class="modal-body" id="modal-detail-body"></div>
         </div>
     </div>
 
@@ -480,8 +512,9 @@
                         true_sn: p.true_sn || p.sn || '',
                         tag_sn: p.tag_sn || p.true_sn || p.sn || '',
                         unit: p.unit || 'A',
-                        base_reading: p.base_reading || null,
+                        base_reading: p.base_reading !== undefined ? p.base_reading : null,
                         tap_in: p.tap_in !== undefined ? p.tap_in : 78.0,
+                        notes: p.notes || '',
                         lat: coords[1],
                         lon: coords[0],
                         polygon: p.polygon_geometry || null
@@ -492,6 +525,7 @@
                     activePivots = loadedPivots;
                     populatePivotDropdown();
                     renderPivotMarkers();
+                    renderBaselineTable();
 
                     if (pivotLayerGroup && pivotLayerGroup.getLayers().length > 0) {
                         const bounds = L.featureGroup(pivotLayerGroup.getLayers()).getBounds();
@@ -564,7 +598,7 @@
                     return;
                 }
 
-                // 2. VALVE BANK MONITORING POINT (Directly between R-14 and R-15)
+                // 2. VALVE BANK MONITORING POINT (Directly on centerline between R-14 and R-15)
                 if (p.id.includes("Valve Bank")) {
                     const vbMarker = L.circleMarker([p.lat, p.lon], {
                         radius: 8, fillColor: "#f59e0b", color: "#ffffff", weight: 2, fillOpacity: 1.0
@@ -603,7 +637,6 @@
                     </div>
                 `;
 
-                // Pivot Boundary Footprint
                 if (p.polygon) {
                     const polyLayer = L.geoJSON(p.polygon, {
                         style: { color: polyColor, weight: 2, fillColor: polyColor, fillOpacity: 0.18 }
@@ -612,7 +645,6 @@
                     pivotLayerGroup.addLayer(polyLayer);
                 }
 
-                // Center Pad Pin
                 if (p.lat && p.lon) {
                     const padMarker = L.circleMarker([p.lat, p.lon], {
                         radius: 7, fillColor: "#38bdf8", color: "#ffffff", weight: 2, fillOpacity: 1.0
@@ -620,7 +652,6 @@
                     padMarker.bindPopup(popupHtml);
                     pivotLayerGroup.addLayer(padMarker);
 
-                    // Scalable Pivot Label
                     const labelMarker = L.marker([p.lat, p.lon], {
                         icon: L.divIcon({
                             className: 'pivot-map-label-wrap',
@@ -738,25 +769,33 @@
         }
 
         // --------------------------------------------------------------------
-        // Historical Record Matcher (Connects consecutive visits)
+        // Robust Historical Ground-Truth Linker
+        // Ignores corrupt 0-dial readings and strictly anchors to baseline!
         // --------------------------------------------------------------------
         function getPriorVisitRecord(pivotId) {
+            const found = activePivots.find(x => x.id === pivotId);
+            const baseReading = (found && found.base_reading !== null) ? Number(found.base_reading) : null;
+
             const surveys = JSON.parse(localStorage.getItem('local_surveys') || '[]');
-            const matches = surveys
-                .filter(s => s.pivotId === pivotId && (s.currentReading !== undefined || s.t2Reading !== undefined || s.t1Reading !== undefined))
+            
+            // Filter strictly for valid, positive field readings greater than baseline
+            const validPrior = surveys
+                .filter(s => s.pivotId === pivotId && Number(s.currentReading) > 0 && (baseReading === null || Number(s.currentReading) > baseReading))
                 .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
-            if (matches.length > 0) return matches[0];
+            if (validPrior.length > 0) {
+                return validPrior[0];
+            }
 
-            // Ground-truth fallback from baseline calibration sheet!
-            const found = activePivots.find(x => x.id === pivotId);
-            if (found && found.base_reading) {
+            // Strictly fall back to verified initial baseline calibration sheet!
+            if (found && baseReading !== null) {
                 return {
                     client_uuid: "calibration_baseline",
                     timestamp: "2026-10-23T08:00:00.000Z",
-                    currentReading: found.base_reading,
+                    currentReading: baseReading,
                     unitLabel: found.unit === 'A' ? '0.001 × Ac-Ft (Unit A)' : '100 × Gallons (Unit B)',
-                    technician: "Baseline Ground-Truth"
+                    technician: "Initial Ground-Truth",
+                    isInitialBaseline: true
                 };
             }
 
@@ -773,7 +812,6 @@
 
                 document.getElementById('field-true-sn').value = trueSn;
 
-                // Only show Tag S/N if there is an actual manufacturer mismatch!
                 const tagWrap = document.getElementById('tag-sn-wrap');
                 if (tagSn && trueSn && tagSn !== trueSn) {
                     tagWrap.style.display = 'flex';
@@ -782,17 +820,15 @@
                     tagWrap.style.display = 'none';
                 }
 
-                // Auto-fill exact measured riser tap height
                 if (found.tap_in !== undefined && found.tap_in !== null) {
                     document.getElementById('field-tap-height-in').value = Number(found.tap_in).toFixed(1);
                 }
 
-                // Auto-select Unit A (0.001 ac-ft) vs Unit B (100 Gal)
                 const unitSelect = document.getElementById('field-meter-units');
                 if (found.unit === 'A') {
-                    unitSelect.value = "325.851429"; // 0.001 Acre-Feet
+                    unitSelect.value = "325.851429"; // Unit A: 0.001 Ac-Ft
                 } else if (found.unit === 'B') {
-                    unitSelect.value = "100"; // 100 Gallons
+                    unitSelect.value = "100"; // Unit B: 100 Gallons
                 }
             }
 
@@ -808,18 +844,24 @@
             const badge = document.getElementById('prior-reading-badge');
 
             if (prior) {
-                const priorVal = prior.currentReading !== undefined ? prior.currentReading : (prior.t2Reading || prior.t1Reading || 0);
-                const d = new Date(prior.timestamp);
-                const dateStr = `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
-                const techStr = prior.technician ? `by ${prior.technician}` : '';
-
                 banner.style.display = 'block';
-                text.innerText = `Dial: ${Number(priorVal).toLocaleString()} (${prior.unitLabel || 'Units'}) on ${dateStr} ${techStr}`;
-                badge.innerText = "✓ Linked to History";
-                badge.style.color = "#10b981";
+                const readingVal = Number(prior.currentReading).toLocaleString();
+
+                if (prior.isInitialBaseline) {
+                    const unitName = (found && found.unit === 'B') ? '100 Gal (Unit B)' : '0.001 Ac-Ft (Unit A)';
+                    text.innerText = `Starting Calibration Baseline: ${readingVal} (${unitName})`;
+                    badge.innerText = "Baseline Ground-Truth";
+                    badge.style.color = "#10b981";
+                } else {
+                    const d = new Date(prior.timestamp);
+                    const dateStr = `${d.getMonth()+1}/${d.getDate()} ${d.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+                    text.innerText = `Prior Field Reading: ${readingVal} (${prior.unitLabel || ''}) on ${dateStr}`;
+                    badge.innerText = "✓ Linked to Prior Log";
+                    badge.style.color = "#10b981";
+                }
             } else {
                 banner.style.display = 'block';
-                text.innerText = `Initial Visit (No previous readings recorded for ${pId})`;
+                text.innerText = `Initial Visit (No previous baseline recorded for ${pId})`;
                 badge.innerText = "Initial Baseline";
                 badge.style.color = "#38bdf8";
             }
@@ -874,10 +916,7 @@
                     const file = new File([blob], filename, { type: "image/jpeg" });
 
                     if (navigator.canShare({ files: [file] })) {
-                        await navigator.share({
-                            files: [file],
-                            title: filename
-                        });
+                        await navigator.share({ files: [file], title: filename });
                         return;
                     }
                 } catch (err) {}
@@ -986,20 +1025,17 @@
         }
 
         // --------------------------------------------------------------------
-        // Hydraulic Calculation Engine (Dual Ac-Ft & Gallon Reporting)
+        // Hydraulic Calculation Engine (Live Instant Calculation to Current Instant)
         // --------------------------------------------------------------------
         function runLiveHydraulics() {
             const tapHeightIn = parseFloat(document.getElementById('field-tap-height-in').value) || 0;
             const rawPsi = parseFloat(document.getElementById('field-gauge-psi').value) || 0;
 
-            // 1. Pad Datum Pressure Correction
             const datumCorrection = (tapHeightIn / 12.0) * 0.433127;
             const padPsi = rawPsi > 0 ? (rawPsi + datumCorrection) : 0;
             document.getElementById('diag-pad-psi').innerText = padPsi > 0 ? `${padPsi.toFixed(1)} PSI` : '-- PSI';
 
-            // 2. Continuous Flow Calculation across Linked Visits
             const pId = document.getElementById('field-pivot-select').value;
-            const currentDt = document.getElementById('field-current-datetime').value;
             const currentVal = parseFloat(document.getElementById('field-current-val').value);
             const unitMultiplier = getActiveUnitMultiplier();
 
@@ -1008,10 +1044,11 @@
             const volumeElem = document.getElementById('diag-volume');
 
             const prior = getPriorVisitRecord(pId);
+            const now = new Date();
 
-            if (currentDt && !isNaN(currentVal) && prior) {
-                const priorVal = prior.currentReading !== undefined ? prior.currentReading : (prior.t2Reading !== undefined ? prior.t2Reading : (prior.t1Reading || 0));
-                const dtMinutes = (new Date(currentDt) - new Date(prior.timestamp)) / (1000 * 60);
+            if (!isNaN(currentVal) && prior) {
+                const priorVal = Number(prior.currentReading);
+                const dtMinutes = (now - new Date(prior.timestamp)) / (1000 * 60);
 
                 if (dtMinutes > 0 && currentVal >= priorVal) {
                     const totalGal = (currentVal - priorVal) * unitMultiplier;
@@ -1030,7 +1067,6 @@
                         durationElem.innerText = `${hrs}h ${mins}m`;
                     }
 
-                    // Display BOTH Acre-Feet and Gallons simultaneously
                     if (unitMultiplier > 200) {
                         volumeElem.innerText = `${totalAcFt.toFixed(3)} Ac-Ft (${Math.round(totalGal).toLocaleString()} Gal)`;
                     } else {
@@ -1038,17 +1074,17 @@
                     }
                 } else if (currentVal < priorVal) {
                     durationElem.innerText = "Roll/Reset";
-                    flowElem.innerText = "Meter Rolled?";
+                    flowElem.innerText = "Dial < Base?";
                     volumeElem.innerText = "--";
                 } else {
-                    durationElem.innerText = "Check Date";
+                    durationElem.innerText = "--";
                     flowElem.innerText = "-- GPM";
                     volumeElem.innerText = "--";
                 }
-            } else if (currentDt && !isNaN(currentVal) && !prior) {
+            } else if (!isNaN(currentVal) && !prior) {
                 durationElem.innerText = "Baseline Setup";
                 flowElem.innerText = "Initial Visit";
-                volumeElem.innerText = "Baseline Val";
+                volumeElem.innerText = "Baseline Dial";
             } else {
                 durationElem.innerText = "--";
                 flowElem.innerText = "-- GPM";
@@ -1084,7 +1120,7 @@
         }
 
         // --------------------------------------------------------------------
-        // Cloud Sync Engine & Team Feed Consolidation
+        // Cloud Sync Engine & Automated Timestamping
         // --------------------------------------------------------------------
         function saveCloudConfig() {
             localStorage.setItem("gh_tech", document.getElementById("cfg-tech-name").value.trim());
@@ -1118,7 +1154,6 @@
             const padPsiStr = document.getElementById('diag-pad-psi').innerText;
             const flowGpmStr = document.getElementById('diag-flow-gpm').innerText;
 
-            const currentDt = document.getElementById('field-current-datetime').value;
             const currentVal = parseFloat(document.getElementById('field-current-val').value) || 0;
             const unitMultiplier = getActiveUnitMultiplier();
             const unitSelect = document.getElementById('field-meter-units');
@@ -1131,14 +1166,18 @@
                 unitText = unitSelect.options[unitSelect.selectedIndex].text;
             }
 
+            // Automatic timestamp generated right now on save!
+            const now = new Date();
+            const currentIso = now.toISOString();
+
             const prior = getPriorVisitRecord(pId);
-            const priorVal = prior ? (prior.currentReading !== undefined ? prior.currentReading : (prior.t2Reading !== undefined ? prior.t2Reading : (prior.t1Reading || 0))) : null;
-            const dtMinutes = (prior && currentDt) ? Math.max(0, (new Date(currentDt) - new Date(prior.timestamp)) / (1000 * 60)) : 0;
+            const priorVal = prior ? Number(prior.currentReading) : null;
+            const dtMinutes = (prior) ? Math.max(0, (now - new Date(prior.timestamp)) / (1000 * 60)) : 0;
             const totalGal = (prior && currentVal >= priorVal) ? ((currentVal - priorVal) * unitMultiplier) : 0;
 
             const record = {
                 client_uuid: Date.now() + "_" + Math.random().toString(36).substring(2, 7),
-                timestamp: currentDt ? new Date(currentDt).toISOString() : new Date().toISOString(),
+                timestamp: currentIso, // 100% Automatic Timestamp
                 technician: localStorage.getItem("gh_tech") || "Field Op",
                 pivotId: pId,
                 true_sn: trueSn,
@@ -1171,7 +1210,7 @@
             localStorage.setItem('local_surveys', JSON.stringify(allSurveys));
 
             renderSurveyTable();
-            alert(`Visit recorded for ${pId}.`);
+            alert(`Visit recorded for ${pId} at ${now.toLocaleTimeString()}!`);
 
             clearAllPhotos();
             syncOfflineQueueToGitHub();
@@ -1214,9 +1253,6 @@
             renderSurveyTable();
         }
 
-        // --------------------------------------------------------------------
-        // Team Cloud Sync: Ingests Full JSON Log with Photos
-        // --------------------------------------------------------------------
         async function fetchCloudSurveyLog() {
             try {
                 const resp = await fetch('data/dist/survey_audit_log.json?t=' + Date.now());
@@ -1241,6 +1277,45 @@
             } catch (err) {
                 console.warn("Cloud log fetch note:", err.message);
             }
+        }
+
+        // --------------------------------------------------------------------
+        // Tabular Baseline Schedule Renderer
+        // --------------------------------------------------------------------
+        function renderBaselineTable() {
+            const tbody = document.getElementById('baseline-table-tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            activePivots.forEach(p => {
+                const tr = document.createElement('tr');
+                const tagNote = (p.tag_sn && p.tag_sn !== p.true_sn) ? `<br><span style="color:#f59e0b; font-size:10px; font-weight:bold;">Tag: ${p.tag_sn}</span>` : '';
+                const baseDial = p.base_reading !== null ? Number(p.base_reading).toLocaleString() : '<span style="color:#64748b;">Need</span>';
+                const unitBadge = p.unit === 'A' ? '<span class="status-pill active" style="font-size:9.5px;">Unit A</span>' : (p.unit === 'B' ? '<span class="status-pill pending" style="font-size:9.5px;">Unit B</span>' : '-');
+
+                tr.innerHTML = `
+                    <td style="font-weight:700; color:#38bdf8;">${p.id}</td>
+                    <td style="font-family:monospace;"><b>${p.true_sn}</b>${tagNote}</td>
+                    <td style="font-family:monospace; font-weight:bold;">${baseDial}</td>
+                    <td>${unitBadge}</td>
+                    <td>${p.tap_in}"</td>
+                    <td style="color:#94a3b8; font-size:11px;">${p.notes || '-'}</td>
+                    <td>
+                        <button onclick="selectAndBindPivot('${p.id}')" style="background:#0284c7; color:white; border:none; padding:4px 8px; border-radius:4px; font-size:11px; font-weight:bold; cursor:pointer;">
+                            📝 Log
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function filterBaselineTable() {
+            const query = document.getElementById('baseline-filter-input').value.toLowerCase();
+            const rows = document.querySelectorAll('#baseline-table-tbody tr');
+            rows.forEach(r => {
+                r.style.display = r.innerText.toLowerCase().includes(query) ? '' : 'none';
+            });
         }
 
         // --------------------------------------------------------------------
@@ -1333,7 +1408,7 @@
                 <div class="detail-row"><span class="detail-label">True S/N</span><span class="detail-val" style="color:#38bdf8;">${snDisplay}</span></div>
                 <div class="detail-row"><span class="detail-label">Dial Reading</span><span class="detail-val" style="color:#38bdf8;">${Number(currentReadingVal).toLocaleString()}</span></div>
                 <div class="detail-row"><span class="detail-label">Meter Units Scale</span><span class="detail-val" style="font-size:11px;">${item.unitLabel || 'Gallons'}</span></div>
-                <div class="detail-row"><span class="detail-label">Linked Prior Visit</span><span class="detail-val" style="font-size:11px;">${item.priorTimestamp ? new Date(item.priorTimestamp).toLocaleDateString() : 'None (Baseline)'}</span></div>
+                <div class="detail-row"><span class="detail-label">Linked Prior Baseline</span><span class="detail-val" style="font-size:11px;">${item.priorReading ? Number(item.priorReading).toLocaleString() : 'Baseline Entry'}</span></div>
                 <div class="detail-row"><span class="detail-label">Test Duration</span><span class="detail-val">${item.durationMinutes ? `${(item.durationMinutes/60).toFixed(1)} hrs (${(item.durationMinutes/1440).toFixed(1)} days)` : 'Initial Baseline'}</span></div>
                 <div class="detail-row"><span class="detail-label">Accumulated Volume</span><span class="detail-val">${volFormatted}</span></div>
                 <div class="detail-row"><span class="detail-label">Average Flow Rate</span><span class="detail-val" style="color:#10b981;">${flowRate > 0 ? `${Math.round(flowRate).toLocaleString()} GPM` : 'Baseline Reading'}</span></div>
@@ -1405,6 +1480,9 @@
                 }, 200);
             } else if (viewId === 'view-form') {
                 document.getElementById('tab-nav-form').classList.add('active');
+            } else if (viewId === 'view-baseline') {
+                document.getElementById('tab-nav-baseline').classList.add('active');
+                renderBaselineTable();
             } else if (viewId === 'view-records') {
                 document.getElementById('tab-nav-records').classList.add('active');
                 fetchCloudSurveyLog();
@@ -1424,13 +1502,6 @@
             onPivotSelectionChanged();
         }
 
-        function setDefaultDateTimeNow() {
-            const now = new Date();
-            const pad = n => String(n).padStart(2, '0');
-            const localIso = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
-            document.getElementById('field-current-datetime').value = localIso;
-        }
-
         // --------------------------------------------------------------------
         // App Lifecycle Bootstrapping
         // --------------------------------------------------------------------
@@ -1440,7 +1511,6 @@
             populatePivotDropdown();
             startGpsTracking();
             renderSurveyTable();
-            setDefaultDateTimeNow();
             loadDynamicPivotRegistry();
             fetchCloudSurveyLog();
 
