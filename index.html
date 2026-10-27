@@ -200,7 +200,7 @@
                 <div id="map"></div>
             </div>
 
-            <!-- TAB 2: FIELD DATA ENTRY FORM (AUTO-TIMESTAMPED) -->
+            <!-- TAB 2: FIELD DATA ENTRY FORM (AUTO-TIMESTAMP ON SAVE) -->
             <div id="view-form" class="view-panel">
                 <div class="form-wrap">
                     <!-- CARD 1: PIVOT & SERIAL NUMBERS -->
@@ -239,11 +239,11 @@
                         </div>
                     </div>
 
-                    <!-- TOTALIZER VISIT CARD (AUTO-TIMESTAMP ON SAVE) -->
+                    <!-- TOTALIZER VISIT CARD -->
                     <div class="card">
                         <div class="card-header">
                             <span>3. Totalizer Visit Reading</span>
-                            <span id="prior-reading-badge" style="color:#10b981; font-weight:700;">Checking History...</span>
+                            <span id="prior-reading-badge" style="color:#10b981; font-weight:700;">Baseline Linked</span>
                         </div>
 
                         <!-- Prior Baseline Banner -->
@@ -283,7 +283,7 @@
                         </div>
 
                         <div style="font-size:11px; color:#64748b; margin-top:2px; font-style:italic;">
-                            ⏱️ Entry is automatically timestamped at the exact second you tap Save &amp; Sync.
+                            ⏱️ Automatically timestamped at the exact second you tap Save &amp; Sync.
                         </div>
                     </div>
 
@@ -316,24 +316,25 @@
                         <div id="photo-gallery-grid" style="display:none; flex-wrap:wrap; gap:8px; margin-top:10px;"></div>
                     </div>
 
+                    <!-- INSTANTANEOUS FIELD DIAGNOSTICS (ACCURATE VOLUME + CALENDAR SPAN) -->
                     <div class="card">
                         <div class="card-header"><span>6. Instantaneous Field Diagnostics</span></div>
                         <div class="calc-preview-box">
+                            <div class="calc-stat">
+                                <span class="calc-stat-label">VOLUME ACCUMULATED</span>
+                                <span class="calc-stat-val" id="diag-volume">--</span>
+                            </div>
+                            <div class="calc-stat">
+                                <span class="calc-stat-label">CALENDAR SPAN</span>
+                                <span class="calc-stat-val" id="diag-duration">--</span>
+                            </div>
                             <div class="calc-stat">
                                 <span class="calc-stat-label">PAD DATUM PRESSURE</span>
                                 <span class="calc-stat-val" id="diag-pad-psi">-- PSI</span>
                             </div>
                             <div class="calc-stat">
-                                <span class="calc-stat-label">AVERAGE FLOW RATE</span>
-                                <span class="calc-stat-val" id="diag-flow-gpm">-- GPM</span>
-                            </div>
-                            <div class="calc-stat">
-                                <span class="calc-stat-label">TEST DURATION</span>
-                                <span class="calc-stat-val" id="diag-duration">--</span>
-                            </div>
-                            <div class="calc-stat">
-                                <span class="calc-stat-label">VOLUME ACCUMULATED</span>
-                                <span class="calc-stat-val" id="diag-volume">--</span>
+                                <span class="calc-stat-label">FLOWRATE RESOLUTION</span>
+                                <span class="calc-stat-val" id="diag-flow-status" style="font-size:11px; color:#94a3b8;">Pending Logger Trace</span>
                             </div>
                         </div>
                     </div>
@@ -405,7 +406,7 @@
                                 <thead>
                                     <tr>
                                         <th>Pivot</th>
-                                        <th>Flow Rate</th>
+                                        <th>Volume Pumped</th>
                                         <th>Pad PSI</th>
                                         <th>Status</th>
                                     </tr>
@@ -637,6 +638,7 @@
                     </div>
                 `;
 
+                // Pivot Boundary Footprint
                 if (p.polygon) {
                     const polyLayer = L.geoJSON(p.polygon, {
                         style: { color: polyColor, weight: 2, fillColor: polyColor, fillOpacity: 0.18 }
@@ -645,6 +647,7 @@
                     pivotLayerGroup.addLayer(polyLayer);
                 }
 
+                // Center Pad Pin
                 if (p.lat && p.lon) {
                     const padMarker = L.circleMarker([p.lat, p.lon], {
                         radius: 7, fillColor: "#38bdf8", color: "#ffffff", weight: 2, fillOpacity: 1.0
@@ -652,6 +655,7 @@
                     padMarker.bindPopup(popupHtml);
                     pivotLayerGroup.addLayer(padMarker);
 
+                    // Scalable Pivot Label
                     const labelMarker = L.marker([p.lat, p.lon], {
                         icon: L.divIcon({
                             className: 'pivot-map-label-wrap',
@@ -770,7 +774,6 @@
 
         // --------------------------------------------------------------------
         // Robust Historical Ground-Truth Linker
-        // Ignores corrupt 0-dial readings and strictly anchors to baseline!
         // --------------------------------------------------------------------
         function getPriorVisitRecord(pivotId) {
             const found = activePivots.find(x => x.id === pivotId);
@@ -778,7 +781,7 @@
 
             const surveys = JSON.parse(localStorage.getItem('local_surveys') || '[]');
             
-            // Filter strictly for valid, positive field readings greater than baseline
+            // Only look at previous visits that recorded a valid reading greater than baseline
             const validPrior = surveys
                 .filter(s => s.pivotId === pivotId && Number(s.currentReading) > 0 && (baseReading === null || Number(s.currentReading) > baseReading))
                 .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
@@ -972,7 +975,7 @@
 
                         canvas.width = width;
                         canvas.height = height;
-                        const ctx = canvas.getContext('2d');
+                        ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
 
                         resolve(canvas.toDataURL('image/jpeg', 0.70));
@@ -980,7 +983,6 @@
                     img.onerror = reject;
                     img.src = e.target.result;
                 };
-                reader.onerror = reject;
                 reader.readAsDataURL(file);
             });
         }
@@ -1025,23 +1027,25 @@
         }
 
         // --------------------------------------------------------------------
-        // Hydraulic Calculation Engine (Live Instant Calculation to Current Instant)
+        // Hydraulic Calculation Engine (Rigorous Volume & Calendar Span)
         // --------------------------------------------------------------------
         function runLiveHydraulics() {
             const tapHeightIn = parseFloat(document.getElementById('field-tap-height-in').value) || 0;
             const rawPsi = parseFloat(document.getElementById('field-gauge-psi').value) || 0;
 
+            // 1. Pad Datum Elevation Correction
             const datumCorrection = (tapHeightIn / 12.0) * 0.433127;
             const padPsi = rawPsi > 0 ? (rawPsi + datumCorrection) : 0;
             document.getElementById('diag-pad-psi').innerText = padPsi > 0 ? `${padPsi.toFixed(1)} PSI` : '-- PSI';
 
+            // 2. Physical Volume Calculation from Meter Dials
             const pId = document.getElementById('field-pivot-select').value;
             const currentVal = parseFloat(document.getElementById('field-current-val').value);
             const unitMultiplier = getActiveUnitMultiplier();
 
             const durationElem = document.getElementById('diag-duration');
-            const flowElem = document.getElementById('diag-flow-gpm');
             const volumeElem = document.getElementById('diag-volume');
+            const flowStatusElem = document.getElementById('diag-flow-status');
 
             const prior = getPriorVisitRecord(pId);
             const now = new Date();
@@ -1053,42 +1057,50 @@
                 if (dtMinutes > 0 && currentVal >= priorVal) {
                     const totalGal = (currentVal - priorVal) * unitMultiplier;
                     const totalAcFt = totalGal / 325851.429;
-                    const gpm = totalGal / dtMinutes;
 
-                    flowElem.innerText = `${Math.round(gpm).toLocaleString()} GPM`;
-
+                    // Display Calendar Duration
                     const totalHours = dtMinutes / 60;
                     if (totalHours >= 24) {
                         const days = (totalHours / 24).toFixed(1);
-                        durationElem.innerText = `${days} days`;
+                        durationElem.innerText = `${days} days (Calendar)`;
                     } else {
                         const hrs = Math.floor(totalHours);
                         const mins = Math.round(dtMinutes % 60);
                         durationElem.innerText = `${hrs}h ${mins}m`;
                     }
 
+                    // Display Accurate Volume in both units
                     if (unitMultiplier > 200) {
                         volumeElem.innerText = `${totalAcFt.toFixed(3)} Ac-Ft (${Math.round(totalGal).toLocaleString()} Gal)`;
                     } else {
                         volumeElem.innerText = `${Math.round(totalGal).toLocaleString()} Gal (${totalAcFt.toFixed(2)} Ac-Ft)`;
                     }
+
+                    // Flowrate cannot be calendar-averaged! Must await logger trace:
+                    flowStatusElem.innerText = "Pending Logger Run-Hours";
+                    flowStatusElem.style.color = "#f59e0b";
+
                 } else if (currentVal < priorVal) {
                     durationElem.innerText = "Roll/Reset";
-                    flowElem.innerText = "Dial < Base?";
-                    volumeElem.innerText = "--";
+                    volumeElem.innerText = "Dial < Base";
+                    flowStatusElem.innerText = "Verify Dial Value";
+                    flowStatusElem.style.color = "#ef4444";
                 } else {
                     durationElem.innerText = "--";
-                    flowElem.innerText = "-- GPM";
                     volumeElem.innerText = "--";
+                    flowStatusElem.innerText = "Pending Logger Trace";
+                    flowStatusElem.style.color = "#94a3b8";
                 }
             } else if (!isNaN(currentVal) && !prior) {
-                durationElem.innerText = "Baseline Setup";
-                flowElem.innerText = "Initial Visit";
+                durationElem.innerText = "Initial Setup";
                 volumeElem.innerText = "Baseline Dial";
+                flowStatusElem.innerText = "Starting Baseline";
+                flowStatusElem.style.color = "#38bdf8";
             } else {
                 durationElem.innerText = "--";
-                flowElem.innerText = "-- GPM";
                 volumeElem.innerText = "--";
+                flowStatusElem.innerText = "Pending Logger Trace";
+                flowStatusElem.style.color = "#94a3b8";
             }
         }
 
@@ -1152,7 +1164,6 @@
             const heading = parseFloat(document.getElementById('field-heading-deg').value) || 0;
             const gaugePsi = parseFloat(document.getElementById('field-gauge-psi').value) || 0;
             const padPsiStr = document.getElementById('diag-pad-psi').innerText;
-            const flowGpmStr = document.getElementById('diag-flow-gpm').innerText;
 
             const currentVal = parseFloat(document.getElementById('field-current-val').value) || 0;
             const unitMultiplier = getActiveUnitMultiplier();
@@ -1166,7 +1177,6 @@
                 unitText = unitSelect.options[unitSelect.selectedIndex].text;
             }
 
-            // Automatic timestamp generated right now on save!
             const now = new Date();
             const currentIso = now.toISOString();
 
@@ -1177,7 +1187,7 @@
 
             const record = {
                 client_uuid: Date.now() + "_" + Math.random().toString(36).substring(2, 7),
-                timestamp: currentIso, // 100% Automatic Timestamp
+                timestamp: currentIso,
                 technician: localStorage.getItem("gh_tech") || "Field Op",
                 pivotId: pId,
                 true_sn: trueSn,
@@ -1192,10 +1202,11 @@
                 priorVisitUuid: prior ? prior.client_uuid : null,
                 priorTimestamp: prior ? prior.timestamp : null,
                 priorReading: priorVal,
-                durationMinutes: Math.round(dtMinutes),
+                calendarElapsedMinutes: Math.round(dtMinutes),
                 totalVolumeGallons: Math.round(totalGal),
                 totalVolumeAcFt: parseFloat((totalGal / 325851.429).toFixed(3)),
-                measuredFlowGpm: parseFloat(flowGpmStr.replace(/[^0-9.]/g, '')) || 0,
+                // Flowrate will be calculated during Python post-processing via logger hours:
+                measuredFlowGpm: null, 
                 photos: [...capturedPhotos],
                 latitude: userLocation ? userLocation.lat : null,
                 longitude: userLocation ? userLocation.lon : null
@@ -1334,8 +1345,8 @@
                 const isPending = queue.some(q => (q.client_uuid && q.client_uuid === s.client_uuid) || (q.timestamp === s.timestamp && q.pivotId === s.pivotId));
                 const photoCount = (s.photos && s.photos.length) || (s.photoBase64 ? 1 : 0);
                 const photoBadge = photoCount > 0 ? `📷 (${photoCount})` : '';
-                const flowVal = s.measuredFlowGpm !== undefined ? s.measuredFlowGpm : (s.calculated_gpm || 0);
-                const flowDisplay = flowVal > 0 ? `${Math.round(flowVal).toLocaleString()} GPM` : 'Baseline';
+
+                const volFormatted = s.totalVolumeAcFt ? `${s.totalVolumeAcFt.toFixed(2)} AF` : (s.totalVolumeGallons ? `${(s.totalVolumeGallons/325851.429).toFixed(2)} AF` : 'Baseline');
                 const padPsiVal = s.calculatedPadPsi !== undefined ? s.calculatedPadPsi : (s.rawGaugePsi || 0);
 
                 const tr = document.createElement('tr');
@@ -1343,7 +1354,7 @@
                 tr.onclick = () => openSurveyDetailByIndex(idx);
                 tr.innerHTML = `
                     <td style="font-weight:700; color:#38bdf8;">${s.pivotId || 'Pivot'} ${photoBadge} <span style="font-size:10px; color:#64748b;">🔍</span></td>
-                    <td>${flowDisplay}</td>
+                    <td style="font-weight:bold;">${volFormatted}</td>
                     <td>${Number(padPsiVal).toFixed(1)} PSI</td>
                     <td><span class="badge ${isPending ? 'badge-fail' : 'badge-pass'}">${isPending ? 'Pending' : 'Synced'}</span></td>
                 `;
@@ -1396,9 +1407,10 @@
                 `${trueSn} <span style="color:#f59e0b; font-size:11px; font-weight:bold;">(Tag: ${tagSn})</span>` : 
                 trueSn;
 
-            const flowRate = item.measuredFlowGpm !== undefined ? item.measuredFlowGpm : (item.calculated_gpm || 0);
             const padPsi = item.calculatedPadPsi !== undefined ? item.calculatedPadPsi : (item.rawGaugePsi || 0);
             const tapPsi = item.rawGaugePsi !== undefined ? item.rawGaugePsi : (item.raw_pressure_psi || 0);
+
+            const elapsedDays = item.calendarElapsedMinutes ? `${(item.calendarElapsedMinutes / 1440).toFixed(1)} days (${(item.calendarElapsedMinutes/60).toFixed(1)} hrs)` : 'Initial Baseline';
 
             const body = document.getElementById('modal-detail-body');
             body.innerHTML = `
@@ -1408,10 +1420,10 @@
                 <div class="detail-row"><span class="detail-label">True S/N</span><span class="detail-val" style="color:#38bdf8;">${snDisplay}</span></div>
                 <div class="detail-row"><span class="detail-label">Dial Reading</span><span class="detail-val" style="color:#38bdf8;">${Number(currentReadingVal).toLocaleString()}</span></div>
                 <div class="detail-row"><span class="detail-label">Meter Units Scale</span><span class="detail-val" style="font-size:11px;">${item.unitLabel || 'Gallons'}</span></div>
-                <div class="detail-row"><span class="detail-label">Linked Prior Baseline</span><span class="detail-val" style="font-size:11px;">${item.priorReading ? Number(item.priorReading).toLocaleString() : 'Baseline Entry'}</span></div>
-                <div class="detail-row"><span class="detail-label">Test Duration</span><span class="detail-val">${item.durationMinutes ? `${(item.durationMinutes/60).toFixed(1)} hrs (${(item.durationMinutes/1440).toFixed(1)} days)` : 'Initial Baseline'}</span></div>
-                <div class="detail-row"><span class="detail-label">Accumulated Volume</span><span class="detail-val">${volFormatted}</span></div>
-                <div class="detail-row"><span class="detail-label">Average Flow Rate</span><span class="detail-val" style="color:#10b981;">${flowRate > 0 ? `${Math.round(flowRate).toLocaleString()} GPM` : 'Baseline Reading'}</span></div>
+                <div class="detail-row"><span class="detail-label">Linked Baseline Dial</span><span class="detail-val" style="font-size:11px;">${item.priorReading ? Number(item.priorReading).toLocaleString() : 'Baseline Entry'}</span></div>
+                <div class="detail-row"><span class="detail-label">Calendar Elapsed Span</span><span class="detail-val">${elapsedDays}</span></div>
+                <div class="detail-row"><span class="detail-label">Accumulated Volume</span><span class="detail-val" style="color:#10b981;">${volFormatted}</span></div>
+                <div class="detail-row"><span class="detail-label">Operating Flow Rate</span><span class="detail-val" style="color:#f59e0b; font-size:11.5px;">Requires Logger Run-Hours</span></div>
                 <div class="detail-row"><span class="detail-label">Pressure Gauge Reading</span><span class="detail-val">${Number(tapPsi).toFixed(1)} PSI</span></div>
                 <div class="detail-row"><span class="detail-label">Pad Datum Pressure</span><span class="detail-val" style="color:#38bdf8;">${Number(padPsi).toFixed(1)} PSI</span></div>
                 <div class="detail-row"><span class="detail-label">Riser Tap Height</span><span class="detail-val">${item.tapHeightInches || 78}" above slab</span></div>
@@ -1443,12 +1455,12 @@
             const surveys = JSON.parse(localStorage.getItem('local_surveys') || '[]');
             if (surveys.length === 0) return alert("No surveys to export.");
 
-            let csv = "Timestamp,Technician,Pivot ID,True SN,Tag SN,Dial Reading,Units,Prior Timestamp,Duration Min,Volume Gallons,Flow GPM,Pressure Gauge PSI,Pad Datum PSI,Tap Height in,Azimuth\n";
+            let csv = "Timestamp,Technician,Pivot ID,True SN,Tag SN,Dial Reading,Units,Prior Dial,Elapsed Min,Volume Gallons,Volume Ac-Ft,Pressure Gauge PSI,Pad Datum PSI,Tap Height in,Azimuth\n";
             surveys.forEach(s => {
                 const reading = s.currentReading !== undefined ? s.currentReading : (s.t2Reading !== undefined ? s.t2Reading : (s.t1Reading || 0));
                 const trueSn = s.true_sn || s.transducerSn || s.actual_sn || '';
                 const tagSn = s.tag_sn || trueSn;
-                csv += `"${s.timestamp}","${s.technician}","${s.pivotId}","${trueSn}","${tagSn}",${reading},"${s.unitLabel || 'Gallons'}","${s.priorTimestamp || ''}",${s.durationMinutes || ''},${s.totalVolumeGallons || ''},${s.measuredFlowGpm || ''},${s.rawGaugePsi},${s.calculatedPadPsi},${s.tapHeightInches},${s.headingDeg}\n`;
+                csv += `"${s.timestamp}","${s.technician}","${s.pivotId}","${trueSn}","${tagSn}",${reading},"${s.unitLabel || 'Gallons'}",${s.priorReading || ''},${s.calendarElapsedMinutes || ''},${s.totalVolumeGallons || ''},${s.totalVolumeAcFt || ''},${s.rawGaugePsi},${s.calculatedPadPsi},${s.tapHeightInches},${s.headingDeg}\n`;
             });
 
             const link = document.createElement("a");
