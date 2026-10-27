@@ -5,7 +5,7 @@ Incorporate Dodge City Verified Calibration Baseline Data:
 - Manufacturer S/N corrections & swapped devices (true_sn vs tag_sn)
 - Physical riser tap heights above concrete slab
 - Baseline totalizer readings and Unit A / B schedules
-- Valve bank and booster station monitoring points
+- Dynamically places Valve Bank on the centerline between R-14 and R-15
 """
 
 import argparse
@@ -19,8 +19,8 @@ from shapely.geometry import Point, Polygon, MultiPolygon
 
 # -----------------------------------------------------------------------------
 # AUTHORITATIVE DODGE CITY CALIBRATION & HARDWARE REGISTRY
-# Unit A: 0.001 * acre-feet (multiplier: 325.851429)
-# Unit B: Gallons * 100     (multiplier: 100.0)
+# Unit A: 0.001 * acre-feet (multiplier: 325.851429 gal/unit)
+# Unit B: Gallons * 100     (multiplier: 100.0 gal/unit)
 # -----------------------------------------------------------------------------
 TRANSDUCER_REGISTRY = {
     "N-3":      {"true_sn": "53809", "tag_sn": "53809", "unit": "A", "base_reading": 295982, "tap_in": 76.0,  "flow_gpm": 700.0, "gauge_psi": 25.0, "notes": "Pivot On"},
@@ -51,7 +51,6 @@ TRANSDUCER_REGISTRY = {
     "NEWELL-1": {"true_sn": "53222", "tag_sn": "53222", "unit": "A", "base_reading": 456867, "tap_in": 30.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""}
 }
 
-# Static Infrastructure (Booster Stations & Valve Bank)
 STATIC_INFRASTRUCTURE = [
     {
         "id": "Booster Station - Suction",
@@ -76,18 +75,6 @@ STATIC_INFRASTRUCTURE = [
         "lon": -100.034103,
         "asset_type": "booster_station",
         "notes": "Height measurement needed in field"
-    },
-    {
-        "id": "Valve Bank btw R-14 and R-15",
-        "true_sn": "53199",
-        "tag_sn": "53199",
-        "unit": "None",
-        "base_reading": None,
-        "tap_in": 37.0,
-        "lat": 37.730000,
-        "lon": -100.006250,
-        "asset_type": "valve_bank",
-        "notes": "Valve bank manifold between R-14 and R-15"
     }
 ]
 
@@ -157,6 +144,7 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
 
     gdf_planar = gdf.to_crs(epsg=3857)
     features = []
+    planar_centers = {}
 
     # 1. Process Master Pivot Polygons
     for idx, row in gdf_planar.iterrows():
@@ -164,6 +152,8 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
         norm_key = normalize_id(raw_name)
 
         center_pad_planar = calculate_true_pivot_center_planar(row.geometry)
+        planar_centers[norm_key] = center_pad_planar
+
         pad_wgs = gpd.GeoSeries([center_pad_planar], crs="EPSG:3857").to_crs(epsg=4326).iloc[0]
         poly_wgs = gpd.GeoSeries([row.geometry], crs="EPSG:3857").to_crs(epsg=4326).iloc[0]
 
@@ -196,7 +186,41 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
             }
         })
 
-    # 2. Append Static Infrastructure (Safe lookup with .get)
+    # 2. Dynamically Place Valve Bank on the Centerline between R-14 and R-15
+    r14_pt = planar_centers.get("R-14")
+    r15_pt = planar_centers.get("R-15")
+
+    if r14_pt and r15_pt:
+        # Midpoint directly on the line between the center pads
+        vb_planar = Point((r14_pt.x + r15_pt.x) / 2.0, (r14_pt.y + r15_pt.y) / 2.0)
+        vb_wgs = gpd.GeoSeries([vb_planar], crs="EPSG:3857").to_crs(epsg=4326).iloc[0]
+        vb_lon, vb_lat = round(vb_wgs.x, 7), round(vb_wgs.y, 7)
+        print(f"Calculated Valve Bank coordinate directly between R-14 and R-15: ({vb_lat}, {vb_lon})")
+    else:
+        # Fallback approximate position
+        vb_lat, vb_lon = 37.730000, -100.006250
+
+    features.append({
+        "type": "Feature",
+        "geometry": {
+            "type": "Point",
+            "coordinates": [vb_lon, vb_lat]
+        },
+        "properties": {
+            "id": "Valve Bank btw R-14 and R-15",
+            "norm_id": "VALVE_BANK_R14_R15",
+            "true_sn": "53199",
+            "tag_sn": "53199",
+            "unit": "None",
+            "base_reading": None,
+            "tap_in": 37.0,
+            "notes": "Valve bank manifold between West side of R-14 and East side of R-15",
+            "asset_type": "valve_bank",
+            "polygon_geometry": None
+        }
+    })
+
+    # 3. Append Booster Station Points
     for asset in STATIC_INFRASTRUCTURE:
         features.append({
             "type": "Feature",
@@ -227,8 +251,7 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
     with open(output_geojson_path, "w", encoding="utf-8") as f:
         json.dump(geojson_payload, f, indent=2)
 
-    print(f"Successfully processed {len(features)} Dodge City assets with verified field data.")
-    print(f"Saved to: {output_geojson_path}")
+    print(f"Successfully processed {len(features)} assets into {output_geojson_path}")
 
 
 if __name__ == "__main__":
