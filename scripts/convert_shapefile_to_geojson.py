@@ -2,7 +2,7 @@
 """
 Center Pivot Shapefile-to-GeoJSON Converter & Pad Localizer
 Incorporate Dodge City Verified Calibration Baseline Data:
-- Manufacturer S/N corrections & swapped devices
+- Manufacturer S/N corrections & swapped devices (true_sn vs tag_sn)
 - Physical riser tap heights above concrete slab
 - Baseline totalizer readings and Unit A / B schedules
 - Valve bank and booster station monitoring points
@@ -18,7 +18,7 @@ import geopandas as gpd
 from shapely.geometry import Point, Polygon, MultiPolygon
 
 # -----------------------------------------------------------------------------
-# DODGE CITY REGISTRY: ONLY TRUE_SN AND TAG_SN
+# AUTHORITATIVE DODGE CITY CALIBRATION & HARDWARE REGISTRY
 # Unit A: 0.001 * acre-feet (multiplier: 325.851429)
 # Unit B: Gallons * 100     (multiplier: 100.0)
 # -----------------------------------------------------------------------------
@@ -51,6 +51,7 @@ TRANSDUCER_REGISTRY = {
     "NEWELL-1": {"true_sn": "53222", "tag_sn": "53222", "unit": "A", "base_reading": 456867, "tap_in": 30.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""}
 }
 
+# Static Infrastructure (Booster Stations & Valve Bank)
 STATIC_INFRASTRUCTURE = [
     {
         "id": "Booster Station - Suction",
@@ -60,7 +61,9 @@ STATIC_INFRASTRUCTURE = [
         "base_reading": None,
         "tap_in": 0.0,
         "lat": 37.568544,
-        "lon": -100.034103
+        "lon": -100.034103,
+        "asset_type": "booster_station",
+        "notes": "Height measurement needed in field"
     },
     {
         "id": "Booster Station - Discharge",
@@ -70,7 +73,9 @@ STATIC_INFRASTRUCTURE = [
         "base_reading": None,
         "tap_in": 0.0,
         "lat": 37.568544,
-        "lon": -100.034103
+        "lon": -100.034103,
+        "asset_type": "booster_station",
+        "notes": "Height measurement needed in field"
     },
     {
         "id": "Valve Bank btw R-14 and R-15",
@@ -80,7 +85,9 @@ STATIC_INFRASTRUCTURE = [
         "base_reading": None,
         "tap_in": 37.0,
         "lat": 37.730000,
-        "lon": -100.006250
+        "lon": -100.006250,
+        "asset_type": "valve_bank",
+        "notes": "Valve bank manifold between R-14 and R-15"
     }
 ]
 
@@ -161,15 +168,11 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
         poly_wgs = gpd.GeoSeries([row.geometry], crs="EPSG:3857").to_crs(epsg=4326).iloc[0]
 
         meta = TRANSDUCER_REGISTRY.get(norm_key, {
-            "actual_sn": str(row.get("SN", "UNASSIGNED")),
+            "true_sn": str(row.get("SN", "UNASSIGNED")),
             "tag_sn": str(row.get("SN", "UNASSIGNED")),
-            "sn": str(row.get("SN", "UNASSIGNED")),
             "unit": "A",
-            "unit_mult": 325.851429,
             "base_reading": 0,
             "tap_in": 78.0,
-            "flow_gpm": None,
-            "gauge_psi": None,
             "notes": ""
         })
 
@@ -182,17 +185,18 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
             "properties": {
                 "id": raw_name,
                 "norm_id": norm_key,
-                "true_sn": meta["true_sn"],
-                "tag_sn": meta["tag_sn"],
-                "unit": meta["unit"],
-                "base_reading": meta["base_reading"],
-                "tap_in": meta["tap_in"],
+                "true_sn": meta.get("true_sn", "UNASSIGNED"),
+                "tag_sn": meta.get("tag_sn", meta.get("true_sn", "UNASSIGNED")),
+                "unit": meta.get("unit", "A"),
+                "base_reading": meta.get("base_reading"),
+                "tap_in": meta.get("tap_in", 78.0),
                 "notes": meta.get("notes", ""),
+                "asset_type": "pivot",
                 "polygon_geometry": poly_wgs.__geo_interface__
             }
         })
 
-    # 2. Append Static Infrastructure
+    # 2. Append Static Infrastructure (Safe lookup with .get)
     for asset in STATIC_INFRASTRUCTURE:
         features.append({
             "type": "Feature",
@@ -203,17 +207,13 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
             "properties": {
                 "id": asset["id"],
                 "norm_id": normalize_id(asset["id"]),
-                "sn": asset["sn"],
-                "actual_sn": asset["actual_sn"],
-                "tag_sn": asset["actual_sn"],
-                "unit": asset["unit"],
-                "unit_mult": asset["unit_mult"],
-                "base_reading": asset["base_reading"],
-                "tap_in": asset["tap_in"],
-                "baseline_flow_gpm": None,
-                "baseline_gauge_psi": None,
-                "notes": asset["notes"],
-                "asset_type": asset["asset_type"],
+                "true_sn": asset.get("true_sn", "UNASSIGNED"),
+                "tag_sn": asset.get("tag_sn", asset.get("true_sn", "UNASSIGNED")),
+                "unit": asset.get("unit", "None"),
+                "base_reading": asset.get("base_reading"),
+                "tap_in": asset.get("tap_in", 0.0),
+                "notes": asset.get("notes", ""),
+                "asset_type": asset.get("asset_type", "static"),
                 "polygon_geometry": None
             }
         })
