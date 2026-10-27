@@ -182,17 +182,12 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
             "properties": {
                 "id": raw_name,
                 "norm_id": norm_key,
-                "sn": meta["sn"],
-                "actual_sn": meta["actual_sn"],
+                "true_sn": meta["true_sn"],
                 "tag_sn": meta["tag_sn"],
                 "unit": meta["unit"],
-                "unit_mult": meta["unit_mult"],
                 "base_reading": meta["base_reading"],
                 "tap_in": meta["tap_in"],
-                "baseline_flow_gpm": meta.get("flow_gpm"),
-                "baseline_gauge_psi": meta.get("gauge_psi"),
                 "notes": meta.get("notes", ""),
-                "asset_type": "pivot",
                 "polygon_geometry": poly_wgs.__geo_interface__
             }
         })
