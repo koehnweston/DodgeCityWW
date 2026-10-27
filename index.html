@@ -265,12 +265,11 @@
                             <div class="form-col" style="flex:1;">
                                 <label>Meter Unit Scale</label>
                                 <select id="field-meter-units" onchange="onMeterUnitChange()">
-                                    <option value="325.851429">0.001 Acre-Feet (Unit A)</option>
-                                    <option value="100">100 Gallons (Unit B)</option>
-                                    <option value="1">Gallons (Gal)</option>
+                                    <option value="325.851429">0.001 × Ac-Ft (Unit A)</option>
+                                    <option value="100">100 × Gallons (Unit B)</option>
+                                    <option value="1">1 × Gallons (Gal)</option>
                                     <option value="1000">1,000 Gallons (×1k)</option>
-                                    <option value="325851.429">Acre-Feet (Ac-Ft)</option>
-                                    <option value="7.48052">Cubic Feet (Cu-Ft)</option>
+                                    <option value="325851.429">1 × Acre-Feet (Ac-Ft)</option>
                                     <option value="custom">⚙️ Custom Scale...</option>
                                 </select>
                             </div>
@@ -565,7 +564,7 @@
                     return;
                 }
 
-                // 2. VALVE BANK MONITORING POINT
+                // 2. VALVE BANK MONITORING POINT (Directly between R-14 and R-15)
                 if (p.id.includes("Valve Bank")) {
                     const vbMarker = L.circleMarker([p.lat, p.lon], {
                         radius: 8, fillColor: "#f59e0b", color: "#ffffff", weight: 2, fillOpacity: 1.0
@@ -756,7 +755,7 @@
                     client_uuid: "calibration_baseline",
                     timestamp: "2026-10-23T08:00:00.000Z",
                     currentReading: found.base_reading,
-                    unitLabel: found.unit === 'A' ? '0.001 Ac-Ft (Unit A)' : '100 Gal (Unit B)',
+                    unitLabel: found.unit === 'A' ? '0.001 × Ac-Ft (Unit A)' : '100 × Gallons (Unit B)',
                     technician: "Baseline Ground-Truth"
                 };
             }
@@ -987,7 +986,7 @@
         }
 
         // --------------------------------------------------------------------
-        // Hydraulic Calculation Engine (Links Current Visit to Prior Visit)
+        // Hydraulic Calculation Engine (Dual Ac-Ft & Gallon Reporting)
         // --------------------------------------------------------------------
         function runLiveHydraulics() {
             const tapHeightIn = parseFloat(document.getElementById('field-tap-height-in').value) || 0;
@@ -1016,6 +1015,7 @@
 
                 if (dtMinutes > 0 && currentVal >= priorVal) {
                     const totalGal = (currentVal - priorVal) * unitMultiplier;
+                    const totalAcFt = totalGal / 325851.429;
                     const gpm = totalGal / dtMinutes;
 
                     flowElem.innerText = `${Math.round(gpm).toLocaleString()} GPM`;
@@ -1030,10 +1030,11 @@
                         durationElem.innerText = `${hrs}h ${mins}m`;
                     }
 
-                    if (totalGal >= 325851.4) {
-                        volumeElem.innerText = `${(totalGal / 325851.429).toFixed(2)} Ac-Ft`;
+                    // Display BOTH Acre-Feet and Gallons simultaneously
+                    if (unitMultiplier > 200) {
+                        volumeElem.innerText = `${totalAcFt.toFixed(3)} Ac-Ft (${Math.round(totalGal).toLocaleString()} Gal)`;
                     } else {
-                        volumeElem.innerText = `${Math.round(totalGal).toLocaleString()} Gal`;
+                        volumeElem.innerText = `${Math.round(totalGal).toLocaleString()} Gal (${totalAcFt.toFixed(2)} Ac-Ft)`;
                     }
                 } else if (currentVal < priorVal) {
                     durationElem.innerText = "Roll/Reset";
@@ -1154,6 +1155,7 @@
                 priorReading: priorVal,
                 durationMinutes: Math.round(dtMinutes),
                 totalVolumeGallons: Math.round(totalGal),
+                totalVolumeAcFt: parseFloat((totalGal / 325851.429).toFixed(3)),
                 measuredFlowGpm: parseFloat(flowGpmStr.replace(/[^0-9.]/g, '')) || 0,
                 photos: [...capturedPhotos],
                 latitude: userLocation ? userLocation.lat : null,
@@ -1290,9 +1292,7 @@
             const currentReadingVal = item.currentReading !== undefined ? item.currentReading : (item.t2Reading !== undefined ? item.t2Reading : (item.t1Reading || 0));
 
             const volFormatted = item.totalVolumeGallons ? (
-                item.totalVolumeGallons >= 325851.4 ? 
-                `${(item.totalVolumeGallons / 325851.429).toFixed(2)} Ac-Ft` : 
-                `${Math.round(item.totalVolumeGallons).toLocaleString()} Gal`
+                `${(item.totalVolumeGallons / 325851.429).toFixed(3)} Ac-Ft (${Math.round(item.totalVolumeGallons).toLocaleString()} Gal)`
             ) : "Initial Baseline (No Volume)";
 
             const photos = item.photos || (item.photoBase64 ? [item.photoBase64] : []);
