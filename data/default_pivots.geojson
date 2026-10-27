@@ -13866,6 +13866,28 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
+          -100.0432402,
+          37.5577869
+        ]
+      },
+      "properties": {
+        "id": "Valve Bank btw R-14 and R-15",
+        "norm_id": "VALVE_BANK_R14_R15",
+        "true_sn": "53199",
+        "tag_sn": "53199",
+        "unit": "None",
+        "base_reading": null,
+        "tap_in": 37.0,
+        "notes": "Valve bank manifold between West side of R-14 and East side of R-15",
+        "asset_type": "valve_bank",
+        "polygon_geometry": null
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
           -100.034103,
           37.568544
         ]
@@ -13902,28 +13924,6 @@
         "tap_in": 0.0,
         "notes": "Height measurement needed in field",
         "asset_type": "booster_station",
-        "polygon_geometry": null
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          -100.00625,
-          37.73
-        ]
-      },
-      "properties": {
-        "id": "Valve Bank btw R-14 and R-15",
-        "norm_id": "VALVE BANK BTW R-14 AND R-15",
-        "true_sn": "53199",
-        "tag_sn": "53199",
-        "unit": "None",
-        "base_reading": null,
-        "tap_in": 37.0,
-        "notes": "Valve bank manifold between R-14 and R-15",
-        "asset_type": "valve_bank",
         "polygon_geometry": null
       }
     }
