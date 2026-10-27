@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """
 Center Pivot Shapefile-to-GeoJSON Converter & Pad Localizer
-Includes automated static booster station asset injection.
+Incorporate Dodge City Verified Calibration Baseline Data:
+- Manufacturer S/N corrections & swapped devices
+- Physical riser tap heights above concrete slab
+- Baseline totalizer readings and Unit A / B schedules
+- Valve bank and booster station monitoring points
 """
 
 import argparse
@@ -14,61 +18,69 @@ import geopandas as gpd
 from shapely.geometry import Point, Polygon, MultiPolygon
 
 # -----------------------------------------------------------------------------
-# TRANSDUCER SCHEDULE & INVENTORY DATABASE
+# DODGE CITY REGISTRY: ONLY TRUE_SN AND TAG_SN
+# Unit A: 0.001 * acre-feet (multiplier: 325.851429)
+# Unit B: Gallons * 100     (multiplier: 100.0)
 # -----------------------------------------------------------------------------
 TRANSDUCER_REGISTRY = {
-    "R-5 WEST": {"sn": "B53255-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 800.0, "reg_psi": 15.0, "max_elev_diff": 12.0},
-    "R-5 EAST": {"sn": "B53250-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 800.0, "reg_psi": 15.0, "max_elev_diff": 10.0},
-    "N-9":      {"sn": "B53223-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 850.0, "reg_psi": 15.0, "max_elev_diff": 14.0},
-    "R-2":      {"sn": "B53200-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 825.0, "reg_psi": 15.0, "max_elev_diff": 6.0},
-    "R-1":      {"sn": "B53224-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 800.0, "reg_psi": 15.0, "max_elev_diff": 8.0},
-    "N-7":      {"sn": "B53249-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 850.0, "reg_psi": 15.0, "max_elev_diff": 16.0},
-    "N-2":      {"sn": "B53746-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 900.0, "reg_psi": 15.0, "max_elev_diff": 18.0},
-    "R-9":      {"sn": "B53235-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 800.0, "reg_psi": 15.0, "max_elev_diff": 5.0},
-    "R-14":     {"sn": "B53704-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 775.0, "reg_psi": 15.0, "max_elev_diff": 9.0},
-    "R-15":     {"sn": "B-53721-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 775.0, "reg_psi": 15.0, "max_elev_diff": 11.0},
-    "R-16":     {"sn": "B53254-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 800.0, "reg_psi": 15.0, "max_elev_diff": 7.0},
-    "N-8":      {"sn": "B51021-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 850.0, "reg_psi": 15.0, "max_elev_diff": 15.0},
-    "N-6":      {"sn": "B-53754-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 900.0, "reg_psi": 15.0, "max_elev_diff": 20.0},
-    "N-4":      {"sn": "B53755-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 900.0, "reg_psi": 15.0, "max_elev_diff": 14.0},
-    "R-7":      {"sn": "B53252-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 800.0, "reg_psi": 15.0, "max_elev_diff": 8.0},
-    "N-1":      {"sn": "B53703-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 850.0, "reg_psi": 15.0, "max_elev_diff": 10.0},
-    "R-8":      {"sn": "B53764-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 800.0, "reg_psi": 15.0, "max_elev_diff": 7.0},
-    "R-4":      {"sn": "B53706-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 800.0, "reg_psi": 15.0, "max_elev_diff": 9.0},
-    "R-6":      {"sn": "B53246-B", "status": "Still Irrigating", "z_rel": 6.50, "design_gpm": 800.0, "reg_psi": 15.0, "max_elev_diff": 6.0},
-    "R-10":     {"sn": "B53251-B", "status": "Still Irrigating", "z_rel": 6.50, "design_gpm": 800.0, "reg_psi": 15.0, "max_elev_diff": 8.0},
-    "R-11":     {"sn": "B53213-B", "status": "Still Irrigating", "z_rel": 6.50, "design_gpm": 800.0, "reg_psi": 15.0, "max_elev_diff": 10.0},
-    "R-13":     {"sn": "B-51011-B", "status": "Still Irrigating", "z_rel": 6.50, "design_gpm": 800.0, "reg_psi": 15.0, "max_elev_diff": 7.0},
-    "NEWELL-1": {"sn": "B53222-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 850.0, "reg_psi": 15.0, "max_elev_diff": 12.0},
-    "R-12":     {"sn": "B53195-B", "status": "Complete", "z_rel": 6.83, "design_gpm": 800.0, "reg_psi": 15.0, "max_elev_diff": 9.0},
-    "N-3":      {"sn": "B53809-B", "status": "Complete", "z_rel": 6.33, "design_gpm": 900.0, "reg_psi": 15.0, "max_elev_diff": 13.0},
-    "N-5":      {"sn": "B53248-B", "status": "Complete", "z_rel": 6.50, "design_gpm": 900.0, "reg_psi": 15.0, "max_elev_diff": 17.0}
+    "N-3":      {"true_sn": "53809", "tag_sn": "53809", "unit": "A", "base_reading": 295982, "tap_in": 76.0,  "flow_gpm": 700.0, "gauge_psi": 25.0, "notes": "Pivot On"},
+    "N-2":      {"true_sn": "53746", "tag_sn": "53746", "unit": "B", "base_reading": 517580, "tap_in": 58.5,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "N-1":      {"true_sn": "53703", "tag_sn": "53703", "unit": "A", "base_reading": 544925, "tap_in": 132.0, "flow_gpm": 900.0, "gauge_psi": 27.0, "notes": "Pivot On"},
+    "R-10":     {"true_sn": "53251", "tag_sn": "53251", "unit": "B", "base_reading": 405872, "tap_in": 82.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "R-9":      {"true_sn": "53235", "tag_sn": "53235", "unit": "B", "base_reading": 697579, "tap_in": 62.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "R-8":      {"true_sn": "53253", "tag_sn": "53764", "unit": "A", "base_reading": 256117, "tap_in": 132.0, "flow_gpm": None,  "gauge_psi": None, "notes": "Mismatched S/N"},
+    "R-6":      {"true_sn": "53246", "tag_sn": "53246", "unit": "A", "base_reading": 598095, "tap_in": 76.0,  "flow_gpm": None,  "gauge_psi": None, "notes": "Worked on, ran later"},
+    "R-7":      {"true_sn": "53252", "tag_sn": "53252", "unit": "A", "base_reading": 189843, "tap_in": 62.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "R-2":      {"true_sn": "53200", "tag_sn": "53200", "unit": "A", "base_reading": 832393, "tap_in": 62.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "N-5":      {"true_sn": "53248", "tag_sn": "53248", "unit": "A", "base_reading": 197062, "tap_in": 97.5,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "N-9":      {"true_sn": "53223", "tag_sn": "53223", "unit": "A", "base_reading": 203868, "tap_in": 80.5,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "R-1":      {"true_sn": "53224", "tag_sn": "53224", "unit": "A", "base_reading": 182493, "tap_in": 83.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "N-7":      {"true_sn": "53249", "tag_sn": "53249", "unit": "A", "base_reading": 555722, "tap_in": 57.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "N-6":      {"true_sn": "53754", "tag_sn": "53754", "unit": "A", "base_reading": 265028, "tap_in": 76.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "N-8":      {"true_sn": "51021", "tag_sn": "51021", "unit": "A", "base_reading": 181313, "tap_in": 83.0,  "flow_gpm": 500.0, "gauge_psi": 25.8, "notes": "Pivot On"},
+    "R-4":      {"true_sn": "53706", "tag_sn": "53706", "unit": "A", "base_reading": 354833, "tap_in": 132.0, "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "N-4":      {"true_sn": "53755", "tag_sn": "53755", "unit": "A", "base_reading": 491381, "tap_in": 69.0,  "flow_gpm": 800.0, "gauge_psi": 35.0, "notes": "Pivot On"},
+    "R-5 WEST": {"true_sn": "53764", "tag_sn": "53253", "unit": "A", "base_reading": 355371, "tap_in": 81.0,  "flow_gpm": None,  "gauge_psi": None, "notes": "Mismatched S/N"},
+    "R-5 EAST": {"true_sn": "53250", "tag_sn": "53250", "unit": "A", "base_reading": 796361, "tap_in": 39.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "R-15":     {"true_sn": "53721", "tag_sn": "53721", "unit": "A", "base_reading": 80267,  "tap_in": 97.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "R-16":     {"true_sn": "53254", "tag_sn": "53254", "unit": "A", "base_reading": 602714, "tap_in": 76.5,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "R-14":     {"true_sn": "53704", "tag_sn": "53704", "unit": "A", "base_reading": 398894, "tap_in": 82.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "R-11":     {"true_sn": "53254", "tag_sn": "53213", "unit": "B", "base_reading": 647431, "tap_in": 76.0,  "flow_gpm": None,  "gauge_psi": None, "notes": "Mismatched S/N"},
+    "R-12":     {"true_sn": "53195", "tag_sn": "53195", "unit": "A", "base_reading": 360108, "tap_in": 82.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "R-13":     {"true_sn": "51011", "tag_sn": "51011", "unit": "A", "base_reading": 340122, "tap_in": 48.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "NEWELL-1": {"true_sn": "53222", "tag_sn": "53222", "unit": "A", "base_reading": 456867, "tap_in": 30.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""}
 }
 
 STATIC_INFRASTRUCTURE = [
     {
         "id": "Booster Station - Suction",
-        "sn": "B53202-B",
-        "status": "Active",
-        "z_rel": 0.0,
-        "design_gpm": 1200.0,
-        "reg_psi": 0.0,
-        "max_elev_diff": 0.0,
+        "true_sn": "53202",
+        "tag_sn": "53202",
+        "unit": "None",
+        "base_reading": None,
+        "tap_in": 0.0,
         "lat": 37.568544,
-        "lon": -100.034103,
-        "asset_type": "booster_station"
+        "lon": -100.034103
     },
     {
         "id": "Booster Station - Discharge",
-        "sn": "B-53241-B",
-        "status": "Active",
-        "z_rel": 0.0,
-        "design_gpm": 1200.0,
-        "reg_psi": 0.0,
-        "max_elev_diff": 0.0,
+        "true_sn": "53241",
+        "tag_sn": "53241",
+        "unit": "None",
+        "base_reading": None,
+        "tap_in": 0.0,
         "lat": 37.568544,
-        "lon": -100.034103,
-        "asset_type": "booster_station"
+        "lon": -100.034103
+    },
+    {
+        "id": "Valve Bank btw R-14 and R-15",
+        "true_sn": "53199",
+        "tag_sn": "53199",
+        "unit": "None",
+        "base_reading": None,
+        "tap_in": 37.0,
+        "lat": 37.730000,
+        "lon": -100.006250
     }
 ]
 
@@ -139,7 +151,7 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
     gdf_planar = gdf.to_crs(epsg=3857)
     features = []
 
-    # 1. Process Pivot Polygons
+    # 1. Process Master Pivot Polygons
     for idx, row in gdf_planar.iterrows():
         raw_name = str(row.get(name_col, f"Pivot_{idx+1}")).strip()
         norm_key = normalize_id(raw_name)
@@ -149,12 +161,16 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
         poly_wgs = gpd.GeoSeries([row.geometry], crs="EPSG:3857").to_crs(epsg=4326).iloc[0]
 
         meta = TRANSDUCER_REGISTRY.get(norm_key, {
-            "sn": str(row.get("SN", row.get("TRANSDUCER", "UNASSIGNED"))),
-            "status": "Imported",
-            "z_rel": 6.50,
-            "design_gpm": 800.0,
-            "reg_psi": 15.0,
-            "max_elev_diff": 10.0
+            "actual_sn": str(row.get("SN", "UNASSIGNED")),
+            "tag_sn": str(row.get("SN", "UNASSIGNED")),
+            "sn": str(row.get("SN", "UNASSIGNED")),
+            "unit": "A",
+            "unit_mult": 325.851429,
+            "base_reading": 0,
+            "tap_in": 78.0,
+            "flow_gpm": None,
+            "gauge_psi": None,
+            "notes": ""
         })
 
         features.append({
@@ -167,17 +183,21 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
                 "id": raw_name,
                 "norm_id": norm_key,
                 "sn": meta["sn"],
-                "status": meta["status"],
-                "z_rel": meta["z_rel"],
-                "design_gpm": meta["design_gpm"],
-                "reg_psi": meta["reg_psi"],
-                "max_elev_diff": meta["max_elev_diff"],
+                "actual_sn": meta["actual_sn"],
+                "tag_sn": meta["tag_sn"],
+                "unit": meta["unit"],
+                "unit_mult": meta["unit_mult"],
+                "base_reading": meta["base_reading"],
+                "tap_in": meta["tap_in"],
+                "baseline_flow_gpm": meta.get("flow_gpm"),
+                "baseline_gauge_psi": meta.get("gauge_psi"),
+                "notes": meta.get("notes", ""),
                 "asset_type": "pivot",
                 "polygon_geometry": poly_wgs.__geo_interface__
             }
         })
 
-    # 2. Append Static Booster Station Points
+    # 2. Append Static Infrastructure
     for asset in STATIC_INFRASTRUCTURE:
         features.append({
             "type": "Feature",
@@ -189,11 +209,15 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
                 "id": asset["id"],
                 "norm_id": normalize_id(asset["id"]),
                 "sn": asset["sn"],
-                "status": asset["status"],
-                "z_rel": asset["z_rel"],
-                "design_gpm": asset["design_gpm"],
-                "reg_psi": asset["reg_psi"],
-                "max_elev_diff": asset["max_elev_diff"],
+                "actual_sn": asset["actual_sn"],
+                "tag_sn": asset["actual_sn"],
+                "unit": asset["unit"],
+                "unit_mult": asset["unit_mult"],
+                "base_reading": asset["base_reading"],
+                "tap_in": asset["tap_in"],
+                "baseline_flow_gpm": None,
+                "baseline_gauge_psi": None,
+                "notes": asset["notes"],
                 "asset_type": asset["asset_type"],
                 "polygon_geometry": None
             }
@@ -208,7 +232,7 @@ def convert_shapefile(input_shp_path: str, output_geojson_path: str, name_col: s
     with open(output_geojson_path, "w", encoding="utf-8") as f:
         json.dump(geojson_payload, f, indent=2)
 
-    print(f"Successfully processed {len(features)} total assets (including {len(STATIC_INFRASTRUCTURE)} booster stations).")
+    print(f"Successfully processed {len(features)} Dodge City assets with verified field data.")
     print(f"Saved to: {output_geojson_path}")
 
 
