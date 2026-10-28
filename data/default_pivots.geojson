@@ -7101,7 +7101,7 @@
       "properties": {
         "id": "N-3",
         "norm_id": "N-3",
-        "true_sn": "53809",
+        "true_sn": "53708",
         "tag_sn": "53809",
         "unit": "A",
         "base_reading": 295982,
@@ -10669,7 +10669,7 @@
       "properties": {
         "id": "R-16",
         "norm_id": "R-16",
-        "true_sn": "53254",
+        "true_sn": "53213",
         "tag_sn": "53254",
         "unit": "A",
         "base_reading": 602714,
