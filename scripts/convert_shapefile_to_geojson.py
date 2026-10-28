@@ -23,7 +23,7 @@ from shapely.geometry import Point, Polygon, MultiPolygon
 # Unit B: Gallons * 100     (multiplier: 100.0 gal/unit)
 # -----------------------------------------------------------------------------
 TRANSDUCER_REGISTRY = {
-    "N-3":      {"true_sn": "53809", "tag_sn": "53809", "unit": "A", "base_reading": 295982, "tap_in": 76.0,  "flow_gpm": 700.0, "gauge_psi": 25.0, "notes": "Pivot On"},
+    "N-3":      {"true_sn": "53708", "tag_sn": "53809", "unit": "A", "base_reading": 295982, "tap_in": 76.0,  "flow_gpm": 700.0, "gauge_psi": 25.0, "notes": "Pivot On"},
     "N-2":      {"true_sn": "53746", "tag_sn": "53746", "unit": "B", "base_reading": 517580, "tap_in": 58.5,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
     "N-1":      {"true_sn": "53703", "tag_sn": "53703", "unit": "A", "base_reading": 544925, "tap_in": 132.0, "flow_gpm": 900.0, "gauge_psi": 27.0, "notes": "Pivot On"},
     "R-10":     {"true_sn": "53251", "tag_sn": "53251", "unit": "B", "base_reading": 405872, "tap_in": 82.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
@@ -43,7 +43,7 @@ TRANSDUCER_REGISTRY = {
     "R-5 WEST": {"true_sn": "53764", "tag_sn": "53253", "unit": "A", "base_reading": 355371, "tap_in": 81.0,  "flow_gpm": None,  "gauge_psi": None, "notes": "Mismatched S/N"},
     "R-5 EAST": {"true_sn": "53250", "tag_sn": "53250", "unit": "A", "base_reading": 796361, "tap_in": 39.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
     "R-15":     {"true_sn": "53721", "tag_sn": "53721", "unit": "A", "base_reading": 80267,  "tap_in": 97.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
-    "R-16":     {"true_sn": "53254", "tag_sn": "53254", "unit": "A", "base_reading": 602714, "tap_in": 76.5,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
+    "R-16":     {"true_sn": "53213", "tag_sn": "53254", "unit": "A", "base_reading": 602714, "tap_in": 76.5,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
     "R-14":     {"true_sn": "53704", "tag_sn": "53704", "unit": "A", "base_reading": 398894, "tap_in": 82.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
     "R-11":     {"true_sn": "53254", "tag_sn": "53213", "unit": "B", "base_reading": 647431, "tap_in": 76.0,  "flow_gpm": None,  "gauge_psi": None, "notes": "Mismatched S/N"},
     "R-12":     {"true_sn": "53195", "tag_sn": "53195", "unit": "A", "base_reading": 360108, "tap_in": 82.0,  "flow_gpm": None,  "gauge_psi": None, "notes": ""},
