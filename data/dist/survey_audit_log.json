@@ -1048,5 +1048,34 @@
     "tag_sn":"53708",
     "calendarElapsedMinutes":9131.0,
     "totalVolumeAcFt":9.484
+  },
+  {
+    "client_uuid":"1793290667304_qv24z",
+    "timestamp":"2026-10-29T16:17:47.302Z",
+    "technician":"Field Op",
+    "pivotId":"N-4",
+    "transducerSn":null,
+    "tapHeightInches":69.0,
+    "headingDeg":0,
+    "rawGaugePsi":0,
+    "calculatedPadPsi":0.0,
+    "currentReading":520135,
+    "unitLabel":"100 \u00d7 Gallons (Unit B)",
+    "unitMultiplier":100.0,
+    "priorVisitUuid":"calibration_baseline",
+    "priorTimestamp":"2026-10-23T08:00:00.000Z",
+    "priorReading":491381.0,
+    "durationMinutes":null,
+    "totalVolumeGallons":2875400,
+    "measuredFlowGpm":null,
+    "photos":[
+
+    ],
+    "latitude":37.5715551164,
+    "longitude":-100.0198880349,
+    "true_sn":"53755",
+    "tag_sn":"53755",
+    "calendarElapsedMinutes":9138.0,
+    "totalVolumeAcFt":8.824
   }
 ]
