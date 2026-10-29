@@ -610,6 +610,35 @@
     "totalVolumeAcFt":1.104
   },
   {
+    "pivotId":"R-4",
+    "client_uuid":"1793296194859_4kzgu",
+    "timestamp":"2026-10-29T17:49:54.857Z",
+    "technician":"Field Op",
+    "transducerSn":null,
+    "tapHeightInches":132.0,
+    "headingDeg":0,
+    "rawGaugePsi":0,
+    "calculatedPadPsi":0.0,
+    "currentReading":357650,
+    "unitLabel":"0.001 \u00d7 Ac-Ft (Unit A)",
+    "unitMultiplier":325.851429,
+    "priorVisitUuid":"calibration_baseline",
+    "priorTimestamp":"2026-10-23T08:00:00.000Z",
+    "priorReading":354833.0,
+    "durationMinutes":null,
+    "totalVolumeGallons":917923,
+    "measuredFlowGpm":null,
+    "photos":[
+
+    ],
+    "latitude":37.6012593721,
+    "longitude":-100.0244756173,
+    "true_sn":"53706",
+    "tag_sn":"53706",
+    "calendarElapsedMinutes":9230.0,
+    "totalVolumeAcFt":2.817
+  },
+  {
     "pivotId":"R-5 East",
     "client_uuid":"1793050832640_at8c5",
     "timestamp":"2026-10-26T21:31:00.000Z",
